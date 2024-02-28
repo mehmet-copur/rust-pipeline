@@ -1,0 +1,32 @@
+name: 'Setup Rust Environment with Caching'
+description: 'Setup Rust and cache dependencies'
+inputs:
+  rust-version:
+    description: 'Rust toolchain version to install'
+    required: true
+    default: 'stable'
+runs:
+  using: 'composite'
+  steps:
+  - uses: actions/checkout@v2
+
+  - name: Setup Rust Toolchain
+    uses: actions-rs/toolchain@v1
+    with:
+      toolchain: ${{ inputs.rust-version }}
+      profile: minimal
+      override: true
+
+  - name: Cache Cargo Registry
+    uses: actions/cache@v2
+    with:
+      path: |
+        ~/.cargo/registry
+        ~/.cargo/git
+      key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+  - name: Cache Cargo Target Directory
+    uses: actions/cache@v2
+    with:
+      path: target
+      key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}

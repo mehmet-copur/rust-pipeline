@@ -1,0 +1,59 @@
+name: Rust CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  setup-environment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup CI Environment
+        uses: example-org/ci-cd-templates/.github/actions/setup-environment@main
+        with:
+          rust-version: 'stable'
+  
+  build:
+    needs: setup-environment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build Rust Project
+        uses: example-org/ci-cd-templates/.github/actions/rust-build@main
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test Rust Project
+        uses: example-org/ci-cd-templates/.github/actions/rust-test@main
+
+  dependency-scan:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dependency Vulnerability Scan
+        uses: example-org/ci-cd-templates/.github/actions/dependency-scan@main
+
+  docker-build-and-push:
+    needs: dependency-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and Push Docker Image
+        uses: example-org/ci-cd-templates/.github/actions/docker-build-and-push@main
+        with:
+          image-name: 'myapp'
+          image-tag: ${{ github.sha }}
+
+  deploy-to-dev:
+    if: github.ref == 'refs/heads/main'
+    needs: docker-build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Development Environment
+        uses: example-org/ci-cd-templates/.github/actions/deploy-dev@main
+        with:
+          environment: 'development'
