@@ -1,0 +1,29 @@
+# Configuration for Dependabot
+version: 2
+updates:
+  # Enable dependency updates for Rust / Cargo
+  - package-ecosystem: "cargo"
+    # Look for `Cargo.toml` and `Cargo.lock` in the repository root
+    directory: "/"
+    # Check the cargo registry for updates daily
+    schedule:
+      interval: "daily"
+  
+  # Enable updates for GitHub Actions themselves
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+
+  # Additional configurations can be added for other ecosystems, like Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Example: Ignoring a specific Docker image or version
+      - dependency-name: "nginx"
+        versions: ["1.19.3"]
+
+  # Configure Dependabot to limit the number of open pull requests
+  open-pull-requests-limit: 10
