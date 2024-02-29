@@ -1,32 +1,48 @@
-name: 'Setup Rust Environment with Caching'
-description: 'Setup Rust and cache dependencies'
+name: 'Setup Environment'
+description: 'Setup Rust toolchain and cache dependencies for faster builds.'
 inputs:
   rust-version:
-    description: 'Rust toolchain version to install'
-    required: true
+    description: 'Version of the Rust toolchain to use.'
+    required: false
     default: 'stable'
+  cache-key-prefix:
+    description: 'Prefix for the cache key, unique to the job.'
+    required: true
 runs:
   using: 'composite'
   steps:
-  - uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ inputs.rust-version }}
+        profile: minimal
+        override: true
+        components: rustfmt, clippy
 
-  - name: Setup Rust Toolchain
-    uses: actions-rs/toolchain@v1
-    with:
-      toolchain: ${{ inputs.rust-version }}
-      profile: minimal
-      override: true
+    - name: Cache Cargo registry
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ inputs.cache-key-prefix }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ inputs.cache-key-prefix }}-cargo-registry-
 
-  - name: Cache Cargo Registry
-    uses: actions/cache@v2
-    with:
-      path: |
-        ~/.cargo/registry
-        ~/.cargo/git
-      key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+    - name: Cache Cargo target
+      uses: actions/cache@v2
+      with:
+        path: target
+        key: ${{ inputs.cache-key-prefix }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ inputs.cache-key-prefix }}-cargo-target-
 
-  - name: Cache Cargo Target Directory
-    uses: actions/cache@v2
-    with:
-      path: target
-      key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
+    - name: Cache Cargo index
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/git/db
+          ~/.cargo/registry/index
+        key: ${{ inputs.cache-key-prefix }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ inputs.cache-key-prefix }}-cargo-index-

@@ -1,70 +1,21 @@
-name: Rust Test
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        rust_version: [stable, beta, nightly]
-        include:
-          - rust_version: stable
-            features: --all-features
-          - rust_version: beta
-            features: --all-features
-          - rust_version: nightly
-            features: --all-features
-        fail-fast: false
-
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-
-    - name: Setup Rust Environment
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: ${{ matrix.rust_version }}
-        override: true
-        components: rustfmt, clippy
-
-    - name: Cache Cargo Registry
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-    - name: Cache Cargo Target Directory
-      uses: actions/cache@v2
-      with:
-        path: target
-        key: ${{ runner.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
-
+name: 'Run Tests'
+description: 'Executes the test suite for the Rust project.'
+inputs:
+  features:
+    description: 'Optional features to test with.'
+    required: false
+    default: ''
+  all-features:
+    description: 'Whether to test all features.'
+    required: false
+    default: 'false'
+  no-default-features:
+    description: 'Whether to disable the default features.'
+    required: false
+    default: 'false'
+runs:
+  using: 'composite'
+  steps:
     - name: Run Tests
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: ${{ matrix.features }} --verbose
-
-    - name: Collect and Publish Test Results
-      if: success() || failure()
-      uses: actions/upload-artifact@v2
-      with:
-        name: test-results-${{ matrix.rust_version }}
-        path: target/test_results
-
-    - name: Generate and Publish Code Coverage
-      if: matrix.rust_version == 'stable'
-      uses: actions-rs/grcov@v0.1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        args: -s . -t lcov --llvm --branch --ignore-not-existing -o ./coverage/lcov.info
+      run: cargo test --verbose ${{ inputs.all-features == 'true' && '--all-features' }} ${{ inputs.no-default-features == 'true' && '--no-default-features' }} ${{ inputs.features && '--features ' + inputs.features }}
+      shell: bash
