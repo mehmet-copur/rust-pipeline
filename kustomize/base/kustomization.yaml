@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+
+commonLabels:
+  app: myapp
+
+namespace: default
+
+images:
+  - name: myapp
+    newName: myregistry/myapp
+    newTag: "latest"
+
+configMapGenerator:
+  - name: myapp-config
+    literals:
+      - APP_ENV=production
+      - DATABASE_URL=http://mydatabase.default.svc.cluster.local
+
+secretGenerator:
+  - name: myapp-secret
+    literals:
+      - SECRET_KEY=changeThisValue

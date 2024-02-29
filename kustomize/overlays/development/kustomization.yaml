@@ -1,0 +1,33 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base configuration to customize
+bases:
+  - ../../base
+
+# Development-specific customizations
+patchesStrategicMerge:
+  - replicaCount.yaml
+
+# Overrides for images, allowing you to use different tags or registries in development
+images:
+  - name: myapp
+    newTag: "dev-latest"
+
+# Custom labels to apply to all resources in this overlay
+commonLabels:
+  app: myapp
+  environment: development
+
+# Generating or modifying ConfigMaps and Secrets specific to development
+configMapGenerator:
+  - name: myapp-config
+    behavior: merge
+    literals:
+      - DEBUG_MODE=true
+
+secretGenerator:
+  - name: myapp-secret
+    behavior: merge
+    literals:
+      - SECRET_KEY=devSecretKeyHere
