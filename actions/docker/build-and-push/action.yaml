@@ -1,0 +1,47 @@
+name: 'Docker Build and Push'
+description: 'Builds a Docker image from the project and pushes it to a Docker registry.'
+inputs:
+  dockerfile:
+    description: 'Path to the Dockerfile.'
+    required: true
+  context:
+    description: 'Path to the build context.'
+    required: true
+    default: '.'
+  image-name:
+    description: 'Name of the Docker image to build and push.'
+    required: true
+  image-tag:
+    description: 'Tag for the Docker image.'
+    required: true
+  registry-url:
+    description: 'URL of the Docker registry. Defaults to Docker Hub.'
+    required: false
+    default: 'docker.io'
+  registry-username:
+    description: 'Username for the Docker registry.'
+    required: true
+  registry-password:
+    description: 'Password for the Docker registry.'
+    required: true
+  push:
+    description: 'Whether to push the image to a registry.'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Log in to Docker registry
+      if: inputs.push == 'true'
+      run: echo "${{ inputs.registry-password }}" | docker login ${{ inputs.registry-url }} -u ${{ inputs.registry-username }} --password-stdin
+      shell: bash
+
+    - name: Build Docker image
+      run: docker build -f ${{ inputs.dockerfile }} -t ${{ inputs.registry-url }}/${{ inputs.image-name }}:${{ inputs.image-tag }} ${{ inputs.context }}
+      shell: bash
+
+    - name: Push Docker image
+      if: inputs.push == 'true'
+      run: docker push ${{ inputs.registry-url }}/${{ inputs.image-name }}:${{ inputs.image-tag }}
+      shell: bash
