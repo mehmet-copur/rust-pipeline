@@ -4,56 +4,56 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '**/README.md'
   pull_request:
     branches:
-      - '*'
+      - main
 
 jobs:
-  setup-environment:
+  setup-and-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup CI Environment
-        uses: example-org/ci-cd-templates/.github/actions/setup-environment@main
+      - name: Setup Rust with caching
+        uses: org-name/github-actions-library/actions/rust/setup-with-cache@v1
         with:
           rust-version: 'stable'
-  
-  build:
-    needs: setup-environment
-    runs-on: ubuntu-latest
-    steps:
+          cache-key-prefix: 'rust-ci-${{ github.run_id }}'
+
       - name: Build Rust Project
-        uses: example-org/ci-cd-templates/.github/actions/rust-build@main
+        uses: org-name/github-actions-library/actions/rust/build@v1
 
   test:
-    needs: build
     runs-on: ubuntu-latest
+    needs: setup-and-build
     steps:
       - name: Test Rust Project
-        uses: example-org/ci-cd-templates/.github/actions/rust-test@main
+        uses: org-name/github-actions-library/actions/rust/test@v1
+        with:
+          all-features: 'true'
 
-  dependency-scan:
-    needs: test
+  security-scan:
     runs-on: ubuntu-latest
+    needs: test
     steps:
       - name: Dependency Vulnerability Scan
-        uses: example-org/ci-cd-templates/.github/actions/dependency-scan@main
+        uses: org-name/github-actions-library/actions/security/dependency-scan@v1
+
+      - name: Code Security Scan
+        uses: org-name/github-actions-library/actions/security/code-scan@v1
 
   docker-build-and-push:
-    needs: dependency-scan
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    needs: security-scan
     steps:
       - name: Build and Push Docker Image
-        uses: example-org/ci-cd-templates/.github/actions/docker-build-and-push@main
+        uses: org-name/github-actions-library/actions/docker/build-and-push@v1
         with:
-          image-name: 'myapp'
-          image-tag: ${{ github.sha }}
-
-  deploy-to-dev:
-    if: github.ref == 'refs/heads/main'
-    needs: docker-build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to Development Environment
-        uses: example-org/ci-cd-templates/.github/actions/deploy-dev@main
-        with:
-          environment: 'development'
+          dockerfile: './Dockerfile'
+          context: '.'
+          image-name: 'myapp/${{ github.repository }}'
+          image-tag: '${{ github.sha }}'
+          registry-url: 'docker.io'
+          registry-username: ${{ secrets.DOCKER_USERNAME }}
+          registry-password: ${{ secrets.DOCKER_PASSWORD }}
