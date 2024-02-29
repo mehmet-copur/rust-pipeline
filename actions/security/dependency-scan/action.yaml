@@ -1,53 +1,20 @@
-name: Dependency Vulnerability Scan
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  schedule:
-    # Run daily at midnight to catch newly discovered vulnerabilities early
-    - cron: '0 0 * * *'
-
-jobs:
-  dependency-scan:
-    name: Scan Dependencies for Vulnerabilities
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout Repository
+name: 'Dependency Vulnerability Scan'
+description: 'Scans Rust project dependencies for known vulnerabilities using cargo-audit.'
+inputs:
+  audit-flags:
+    description: 'Additional flags for cargo-audit command.'
+    required: false
+    default: ''
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Setup Rust Environment
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        profile: minimal
-        override: true
-
-    - name: Cache Cargo Registry and Index
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
     - name: Install cargo-audit
-      uses: actions-rs/cargo@v1
-      with:
-        command: install
-        args: cargo-audit
+      run: cargo install cargo-audit
+      shell: bash
 
-    - name: Run cargo-audit
-      uses: actions-rs/audit-check@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        args: --ignore RUSTSEC-0000-0000
-
-    - name: Upload Audit Report
-      if: failure()
-      uses: actions/upload-artifact@v2
-      with:
-        name: cargo-audit-report
-        path: cargo-audit-report.txt
+    - name: Scan dependencies for vulnerabilities
+      run: cargo audit ${{ inputs.audit-flags }}
+      shell: bash
