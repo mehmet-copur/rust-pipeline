@@ -1,0 +1,29 @@
+name: 'Setup Kustomize'
+description: 'Installs Kustomize for managing Kubernetes manifest configurations.'
+inputs:
+  kustomize-version:
+    description: 'Specific version of Kustomize to install.'
+    required: false
+    default: 'latest'
+runs:
+  using: 'composite'
+  steps:
+    - name: Determine Kustomize Version
+      id: version
+      run: |
+        if [[ "${{ inputs.kustomize-version }}" == "latest" ]]; then
+          echo "Setting Kustomize to the latest version."
+          KUSTOMIZE_VERSION=$(curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest | grep tag_name | cut -d '"' -f 4)
+        else
+          echo "Setting Kustomize to version ${{ inputs.kustomize-version }}."
+          KUSTOMIZE_VERSION="${{ inputs.kustomize-version }}"
+        fi
+        echo "::set-output name=resolved_version::${KUSTOMIZE_VERSION}"
+      shell: bash
+
+    - name: Install Kustomize
+      run: |
+        curl -L "https://github.com/kubernetes-sigs/kustomize/releases/download/${{ steps.version.outputs.resolved_version }}/kustomize_${{ steps.version.outputs.resolved_version }}_linux_amd64.tar.gz" -o kustomize.tar.gz
+        tar -zxvf kustomize.tar.gz
+        sudo mv kustomize /usr/local/bin/
+      shell: bash
