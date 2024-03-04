@@ -17,5 +17,18 @@ runs:
   using: 'composite'
   steps:
     - name: Run Tests
-      run: cargo test --verbose ${{ inputs.all-features == 'true' && '--all-features' }} ${{ inputs.no-default-features == 'true' && '--no-default-features' }} ${{ inputs.features && '--features ' + inputs.features }}
+      run: |
+        FEATURES_FLAGS=""
+        if [ "${{ inputs.features }}" != "" ]; then
+          FEATURES_FLAGS="--features ${{ inputs.features }}"
+        fi
+        ALL_FEATURES_FLAG=""
+        if [ "${{ inputs.all-features }}" == "true" ]; then
+          ALL_FEATURES_FLAG="--all-features"
+        fi
+        NO_DEFAULT_FEATURES_FLAG=""
+        if [ "${{ inputs.no-default-features }}" == "true" ]; then
+          NO_DEFAULT_FEATURES_FLAG="--no-default-features"
+        fi
+        cargo test --verbose $ALL_FEATURES_FLAG $NO_DEFAULT_FEATURES_FLAG $FEATURES_FLAGS
       shell: bash
