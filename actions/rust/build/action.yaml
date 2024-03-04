@@ -13,5 +13,16 @@ runs:
   using: 'composite'
   steps:
     - name: Build Project
-      run: cargo build --verbose ${{ inputs.release == 'true' && '--release' }} ${{ inputs.features && '--features ' + inputs.features }}
+      run: |
+        FEATURES_FLAG=""
+        if [ -n "${{ inputs.features }}" ]; then
+          FEATURES_FLAG="--features ${{ inputs.features }}"
+        fi
+        
+        RELEASE_FLAG=""
+        if [ "${{ inputs.release }}" == "true" ]; then
+          RELEASE_FLAG="--release"
+        fi
+        
+        cargo build --verbose $RELEASE_FLAG $FEATURES_FLAG
       shell: bash
