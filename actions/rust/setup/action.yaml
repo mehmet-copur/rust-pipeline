@@ -7,7 +7,7 @@ inputs:
     default: 'stable'
   cache-key-prefix:
     description: 'Prefix for the cache key, unique to the job.'
-    required: true
+    required: false
 runs:
   using: 'composite'
   steps:
