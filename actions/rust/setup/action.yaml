@@ -1,5 +1,6 @@
 name: 'Setup Environment'
-description: 'Setup Rust toolchain and cache dependencies for faster builds.'
+description: 'Sets up the Rust toolchain, configures environment variables, and caches dependencies for faster builds.'
+
 inputs:
   rust-version:
     description: 'Version of the Rust toolchain to use.'
@@ -8,12 +9,20 @@ inputs:
   cache-key-prefix:
     description: 'Prefix for the cache key, unique to the job.'
     required: false
+  additional-env-vars:
+    description: 'JSON string of additional environment variables to set.'
+    required: false
+
+outputs:
+  rust-path:
+    description: 'The path to the Rust toolchain installation.'
+
 runs:
   using: 'composite'
   steps:
     - name: Checkout repository
       uses: actions/checkout@v2
-      
+
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -21,6 +30,13 @@ runs:
         profile: minimal
         override: true
         components: rustfmt, clippy
+
+    - name: Set up additional environment variables
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.additional-env-vars }}" ]; then
+          echo "${{ inputs.additional-env-vars }}" | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' >> $GITHUB_ENV
+        fi
 
     - name: Cache Cargo registry
       uses: actions/cache@v2
@@ -46,3 +62,7 @@ runs:
           ~/.cargo/registry/index
         key: ${{ inputs.cache-key-prefix }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ inputs.cache-key-prefix }}-cargo-index-
+
+    - name: Output Rust path
+      shell: bash
+      run: echo "rust-path=$(which rustc)" >> $GITHUB_ENV
