@@ -20,6 +20,7 @@ outputs:
 runs:
   using: 'composite'
   steps:
+  
     - name: Checkout repository
       uses: actions/checkout@v2
 
@@ -31,13 +32,23 @@ runs:
         override: true
         components: rustfmt, clippy
 
+    - name: Validate Inputs
+      shell: bash
+      run: |
+        if ! [[ "${{ inputs.rust-version }}" =~ ^(1\.[0-9]+|stable|beta|nightly)$ ]]; then
+          echo "Error: 'rust-version' input is invalid."
+          exit 1
+        fi
+
     - name: Set up additional environment variables
       shell: bash
       run: |
         if [ -n "${{ inputs.additional-env-vars }}" ]; then
+          # Assuming the additional-env-vars input is a JSON string of key-value pairs
+          echo "Setting additional environment variables..."
           echo "${{ inputs.additional-env-vars }}" | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' >> $GITHUB_ENV
         fi
-
+        
     - name: Cache Cargo registry
       uses: actions/cache@v2
       with:
@@ -63,6 +74,11 @@ runs:
         key: ${{ inputs.cache-key-prefix }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ inputs.cache-key-prefix }}-cargo-index-
 
-    - name: Output Rust path
+    - name: Output Toolchain Details
       shell: bash
-      run: echo "rust-path=$(which rustc)" >> $GITHUB_ENV
+      run: |
+        echo "Rust version: $(rustc --version)"
+        echo "Cargo version: $(cargo --version)"
+        echo "rustfmt version: $(rustfmt --version)"
+        echo "clippy version: $(cargo clippy -- --version)"
+        echo "rust-path=$(which rustc)" >> $GITHUB_ENV
