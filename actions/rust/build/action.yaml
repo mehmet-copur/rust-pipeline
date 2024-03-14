@@ -71,13 +71,20 @@ runs:
           exit 1
         fi
 
-        if [ -z "$CUSTOM_BUILD_COMMAND" ]; then
-          # Assuming the binary is named the same as the repo or workspace member
+    - name: Output Binary Path
+      shell: bash
+      run: |
+        if [ -z "${{ inputs.custom-build-command }}" ]; then
           binary_name=$(basename $GITHUB_REPOSITORY)
-          if [ -n "$WORKSPACE_MEMBER_FLAG" ]; then
-            binary_name=$WORKSPACE_MEMBER_FLAG
+          if [ -n "${{ inputs.workspace-member }}" ]; then
+            binary_name=${{ inputs.workspace-member }}
           fi
-          binary_path=$(find target -name $binary_name -type f | head -n 1)
-          echo "binary-path=$binary_path" >> $GITHUB_ENV
-          echo "::set-output name=binary-path::$binary_path"
+          binary_path=$(find target -type f -name $binary_name -print -quit)
+          if [ -n "$binary_path" ]; then
+            echo "binary-path=$binary_path" >> $GITHUB_ENV
+            echo "binary_path=$binary_path" >> $GITHUB_OUTPUT
+          else
+            echo "Error: Compiled binary not found."
+            exit 1
+          fi
         fi
