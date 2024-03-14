@@ -1,28 +1,83 @@
 name: 'Build Project'
 description: 'Compiles the Rust project, utilizing cached dependencies for efficiency.'
+
 inputs:
   features:
     description: 'Optional features to build with.'
     required: false
-    default: ''
   release:
     description: 'Whether to perform a release build.'
     required: false
     default: 'false'
+  target:
+    description: 'Build for the target triple.'
+    required: false
+  custom-build-command:
+    description: 'A custom build command to run instead of cargo build.'
+    required: false
+  workspace-member:
+    description: 'The workspace member to build. Useful for multi-package projects.'
+    required: false
+
+outputs:
+  binary-path:
+    description: 'The path to the compiled binary.'
+
 runs:
   using: 'composite'
   steps:
-    - name: Build Project
-      run: |
-        FEATURES_FLAG=""
-        if [ -n "${{ inputs.features }}" ]; then
-          FEATURES_FLAG="--features ${{ inputs.features }}"
-        fi
-        
-        RELEASE_FLAG=""
-        if [ "${{ inputs.release }}" == "true" ]; then
-          RELEASE_FLAG="--release"
-        fi
-        
-        cargo build --verbose $RELEASE_FLAG $FEATURES_FLAG
+    - name: Pre-Build Checks
       shell: bash
+      run: |
+        if [ ! -f "Cargo.toml" ]; then
+          echo "Error: Cargo.toml not found in the repository."
+          exit 1
+        fi
+
+    - name: Build Project
+      shell: bash
+      run: |
+        FEATURES_FLAG="${{ inputs.features }}"
+        RELEASE_FLAG="${{ inputs.release }}"
+        TARGET_FLAG="${{ inputs.target }}"
+        WORKSPACE_MEMBER_FLAG="${{ inputs.workspace-member }}"
+        CUSTOM_BUILD_COMMAND="${{ inputs.custom-build-command }}"
+
+        build_command="cargo build"
+        if [ -n "$CUSTOM_BUILD_COMMAND" ]; then
+          echo "Running custom build command."
+          build_command="$CUSTOM_BUILD_COMMAND"
+        else
+          echo "Running standard cargo build command."
+          if [ -n "$FEATURES_FLAG" ]; then
+            build_command="$build_command --features $FEATURES_FLAG"
+          fi
+          if [ "$RELEASE_FLAG" == "true" ]; then
+            build_command="$build_command --release"
+          fi
+          if [ -n "$TARGET_FLAG" ]; then
+            build_command="$build_command --target $TARGET_FLAG"
+          fi
+          if [ -n "$WORKSPACE_MEMBER_FLAG" ]; then
+            build_command="$build_command -p $WORKSPACE_MEMBER_FLAG"
+          fi
+        fi
+
+        echo "Build command: $build_command"
+        $build_command
+
+        if [ $? -ne 0 ]; then
+          echo "Build failed."
+          exit 1
+        fi
+
+        if [ -z "$CUSTOM_BUILD_COMMAND" ]; then
+          # Assuming the binary is named the same as the repo or workspace member
+          binary_name=$(basename $GITHUB_REPOSITORY)
+          if [ -n "$WORKSPACE_MEMBER_FLAG" ]; then
+            binary_name=$WORKSPACE_MEMBER_FLAG
+          fi
+          binary_path=$(find target -name $binary_name -type f | head -n 1)
+          echo "binary-path=$binary_path" >> $GITHUB_ENV
+          echo "::set-output name=binary-path::$binary_path"
+        fi
