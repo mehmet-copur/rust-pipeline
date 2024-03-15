@@ -22,7 +22,7 @@ runs:
   using: 'composite'
   steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
@@ -33,7 +33,7 @@ runs:
         components: rustfmt, clippy
 
     - name: Set up caching for Cargo registry
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry
@@ -42,7 +42,7 @@ runs:
         restore-keys: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-cargo-registry-
 
     - name: Set up caching for Cargo target directory
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: target
         key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
