@@ -1,26 +1,25 @@
-name: 'Setup Environment'
-description: 'Sets up the Rust toolchain, configures environment variables, and caches dependencies for faster builds.'
+name: "Setup Environment"
+description: "Sets up the Rust toolchain, configures environment variables, and caches dependencies for faster builds."
 
 inputs:
   rust-version:
-    description: 'Version of the Rust toolchain to use.'
+    description: "Version of the Rust toolchain to use."
     required: false
-    default: 'stable'
+    default: "stable"
   cache-key-prefix:
-    description: 'Prefix for the cache key, unique to the job.'
+    description: "Prefix for the cache key, unique to the job."
     required: false
   additional-env-vars:
-    description: 'JSON string of additional environment variables to set.'
+    description: "JSON string of additional environment variables to set."
     required: false
 
 outputs:
   rust-path:
-    description: 'The path to the Rust toolchain installation.'
+    description: "The path to the Rust toolchain installation."
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
-  
     - name: Checkout repository
       uses: actions/checkout@v2
 
@@ -46,9 +45,9 @@ runs:
         if [ -n "${{ inputs.additional-env-vars }}" ]; then
           # Assuming the additional-env-vars input is a JSON string of key-value pairs
           echo "Setting additional environment variables..."
-          echo "${{ inputs.additional-env-vars }}" | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' >> $GITHUB_ENV
+          echo "${{ inputs.additional-env-vars }}" | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' >> $GITHUB_OUTPUT
         fi
-        
+
     - name: Cache Cargo registry
       uses: actions/cache@v2
       with:
@@ -81,4 +80,4 @@ runs:
         echo "Cargo version: $(cargo --version)"
         echo "rustfmt version: $(rustfmt --version)"
         echo "clippy version: $(cargo clippy -- --version)"
-        echo "rust-path=$(which rustc)" >> $GITHUB_ENV
+        echo "rust-path=$(which rustc)" >> $GITHUB_OUTPUT
