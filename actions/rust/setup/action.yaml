@@ -1,24 +1,25 @@
-name: "Setup Environment"
-description: "Sets up the Rust toolchain, configures environment variables, and caches dependencies for faster builds."
+name: 'Setup Rust Environment for Unit Testing'
+description: 'Prepares a Rust environment for running unit tests, including toolchain setup, caching, and environment configuration.'
 
 inputs:
   rust-version:
-    description: "Version of the Rust toolchain to use."
+    description: 'The version of the Rust toolchain to use.'
     required: false
-    default: "stable"
+    default: 'stable'
   cache-key-prefix:
-    description: "Prefix for the cache key, unique to the job."
+    description: 'A prefix to use for the cache key, ensuring it’s unique for the job.'
     required: false
+    default: 'rust-cache-'
   additional-env-vars:
-    description: "JSON string of additional environment variables to set."
+    description: 'A JSON string containing additional environment variables to set.'
     required: false
 
 outputs:
   rust-path:
-    description: "The path to the Rust toolchain installation."
+    description: 'The path to the installed Rust toolchain.'
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -31,53 +32,30 @@ runs:
         override: true
         components: rustfmt, clippy
 
-    - name: Validate Inputs
-      shell: bash
-      run: |
-        if ! [[ "${{ inputs.rust-version }}" =~ ^(1\.[0-9]+|stable|beta|nightly)$ ]]; then
-          echo "Error: 'rust-version' input is invalid."
-          exit 1
-        fi
-
-    - name: Set up additional environment variables
-      shell: bash
-      run: |
-        if [ -n "${{ inputs.additional-env-vars }}" ]; then
-          # Assuming the additional-env-vars input is a JSON string of key-value pairs
-          echo "Setting additional environment variables..."
-          echo "${{ inputs.additional-env-vars }}" | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' >> $GITHUB_OUTPUT
-        fi
-
-    - name: Cache Cargo registry
+    - name: Set up caching for Cargo registry
       uses: actions/cache@v2
       with:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ inputs.cache-key-prefix }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: ${{ inputs.cache-key-prefix }}-cargo-registry-
+        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-cargo-registry-
 
-    - name: Cache Cargo target
+    - name: Set up caching for Cargo target directory
       uses: actions/cache@v2
       with:
         path: target
-        key: ${{ inputs.cache-key-prefix }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: ${{ inputs.cache-key-prefix }}-cargo-target-
+        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-cargo-target-
 
-    - name: Cache Cargo index
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/git/db
-          ~/.cargo/registry/index
-        key: ${{ inputs.cache-key-prefix }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: ${{ inputs.cache-key-prefix }}-cargo-index-
-
-    - name: Output Toolchain Details
+    - name: Configure additional environment variables
       shell: bash
       run: |
-        echo "Rust version: $(rustc --version)"
-        echo "Cargo version: $(cargo --version)"
-        echo "rustfmt version: $(rustfmt --version)"
-        echo "clippy version: $(cargo clippy -- --version)"
+        if [ -n "${{ inputs.additional-env-vars }}" ]; then
+          echo "${{ inputs.additional-env-vars }}" | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' >> $GITHUB_ENV
+        fi
+
+    - name: Output Rust toolchain path
+      shell: bash
+      run: |
         echo "rust-path=$(which rustc)" >> $GITHUB_OUTPUT
