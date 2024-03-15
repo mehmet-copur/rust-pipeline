@@ -22,7 +22,7 @@ runs:
   using: 'composite'
   steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
@@ -58,4 +58,4 @@ runs:
     - name: Output Rust toolchain path
       shell: bash
       run: |
-        echo "rust-path=$(which rustc)" >> $GITHUB_OUTPUT
+        echo "rust-path=$(which rustc)" >> $GITHUB_ENV
