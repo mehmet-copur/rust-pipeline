@@ -1,47 +1,47 @@
-name: 'Run Integration Tests'
-description: 'Executes integration tests for the Rust project with support for complex setups.'
+name: "Run Integration Tests"
+description: "Executes integration tests for the Rust project with support for complex setups."
 
 inputs:
   command:
     description: 'The test command to use, defaulting to "test" which can be overridden as needed.'
     required: false
-    default: 'test'
+    default: "test"
   features:
-    description: 'Space-separated list of features to test with.'
+    description: "Space-separated list of features to test with."
     required: false
   all-features:
-    description: 'Whether to test all features.'
+    description: "Whether to test all features."
     required: false
-    default: 'false'
+    default: "false"
   no-default-features:
-    description: 'Whether to disable the default features.'
+    description: "Whether to disable the default features."
     required: false
-    default: 'false'
+    default: "false"
   target:
-    description: 'Test for the target triple.'
+    description: "Test for the target triple."
     required: false
   args:
-    description: 'Additional arguments to pass to cargo test.'
+    description: "Additional arguments to pass to cargo test."
     required: false
   test-binary-name:
-    description: 'Specific binary to run integration tests on.'
+    description: "Specific binary to run integration tests on."
     required: false
   setup-script:
-    description: 'Path to an optional setup script to execute before running tests.'
+    description: "Path to an optional setup script to execute before running tests."
     required: false
   teardown-script:
-    description: 'Path to an optional teardown script to execute after tests are complete.'
+    description: "Path to an optional teardown script to execute after tests are complete."
     required: false
   parallel:
     description: 'Run tests in parallel. Set to "false" to run sequentially.'
     required: false
-    default: 'true'
+    default: "true"
   junit-output:
-    description: 'If set, will produce a JUnit XML report at this path.'
+    description: "If set, will produce a JUnit XML report at this path."
     required: false
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Execute Setup Script
       if: inputs.setup-script != ''
@@ -121,3 +121,4 @@ runs:
           echo "JUnit report generated at $junit_output"
         else
           echo "Integration test summary placeholder. Implement summary logic."
+        fi
