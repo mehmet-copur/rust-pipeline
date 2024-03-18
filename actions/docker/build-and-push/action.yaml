@@ -1,5 +1,5 @@
-name: 'Docker Build and Push to Minikube'
-description: 'Builds a Docker image and pushes it to the Minikube Docker registry.'
+name: 'Docker Build and Push'
+description: 'Builds a Docker image and pushes it to a standard Docker registry.'
 
 inputs:
   dockerfile:
@@ -15,23 +15,35 @@ inputs:
   image-tag:
     description: 'Tag for the Docker image.'
     required: true
+  registry-url:
+    description: 'URL to the Docker registry.'
+    required: true
+  registry-username:
+    description: 'Username for the Docker registry.'
+    required: true
+  registry-password:
+    description: 'Password or personal access token for the Docker registry.'
+    required: true
 
 runs:
   using: 'composite'
   steps:
-    - name: Set up Minikube Docker environment
+    - name: Login to Docker Registry
       run: |
-        minikube -p minikube docker-env --shell bash >> "$GITHUB_ENV"
+        echo ${{ inputs.registry-password }} | docker login ${{ inputs.registry-url }} -u ${{ inputs.registry-username }} --password-stdin
       shell: bash
 
     - name: Build Docker image
       run: |
-        source "$GITHUB_ENV"
-        docker build -f ${{ inputs.dockerfile }} -t minikube-local-registry:5000/${{ inputs.image-name }}:${{ inputs.image-tag }} ${{ inputs.context }}
+        docker build -f ${{ inputs.dockerfile }} -t ${{ inputs.registry-url }}/${{ inputs.image-name }}:${{ inputs.image-tag }} ${{ inputs.context }}
       shell: bash
 
-    - name: Push Docker image to Minikube registry
+    - name: Push Docker image to Registry
       run: |
-        source "$GITHUB_ENV"
-        docker push minikube-local-registry:5000/${{ inputs.image-name }}:${{ inputs.image-tag }}
+        docker push ${{ inputs.registry-url }}/${{ inputs.image-name }}:${{ inputs.image-tag }}
+      shell: bash
+
+    - name: Logout from Docker Registry
+      run: |
+        docker logout ${{ inputs.registry-url }}
       shell: bash
