@@ -12,14 +12,14 @@ runs:
       uses: actions/checkout@v2
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
         languages: 'rust'
         # This allows for custom configuration of the CodeQL setup.
         config-file: ${{ inputs.setup-codeql-config }}
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2
 
     - name: Install Rust Linting Tools
       run: rustup component add clippy rustfmt
