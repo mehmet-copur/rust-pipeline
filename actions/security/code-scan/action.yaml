@@ -1,5 +1,5 @@
 name: 'Rust Code Security Scan'
-description: 'Performs a security analysis on Rust projects using cargo clippy and rustfmt for linting and formatting.'
+description: 'Performs a security analysis on Rust projects using cargo clippy and rustfmt for linting and formatting. Outputs results to SARIF format for GitHub integration.'
 inputs:
   allow-failure:
     description: 'Set to true to allow the workflow to continue even if this action fails.'
@@ -18,10 +18,10 @@ inputs:
     required: false
     default: ''
 outputs:
-  clippy-output:
-    description: 'Output from cargo clippy command.'
-  rustfmt-output:
-    description: 'Output from cargo fmt command.'
+  sarif-clippy:
+    description: 'SARIF formatted output from cargo clippy.'
+  sarif-rustfmt:
+    description: 'SARIF formatted output from cargo fmt.'
 runs:
   using: 'composite'
   steps:
@@ -36,8 +36,11 @@ runs:
         override: true
         components: clippy, rustfmt
 
-    - name: Run cargo clippy
-      run: cargo clippy --message-format=json -- ${INPUTS_CLIPPY_FLAGS} | tee clippy-output.json
+    - name: Run cargo clippy and generate SARIF output
+      run: |
+        cargo clippy --message-format=json -- ${INPUTS_CLIPPY_FLAGS} | tee clippy-output.json
+        cargo sarif --input clippy-output.json --output clippy.sarif
+        cat clippy.sarif
       shell: bash
       env:
         INPUTS_CLIPPY_FLAGS: ${{ inputs.clippy-flags }}
@@ -52,8 +55,11 @@ runs:
         fi
       shell: bash
 
-    - name: Run cargo fmt
-      run: cargo fmt -- --check ${INPUTS_RUSTFMT_FLAGS}
+    - name: Run cargo fmt and generate SARIF output
+      run: |
+        cargo fmt -- --check ${INPUTS_RUSTFMT_FLAGS}
+        cargo sarif --input fmt-output.json --output fmt.sarif
+        cat fmt.sarif
       shell: bash
       env:
         INPUTS_RUSTFMT_FLAGS: ${{ inputs.rustfmt-flags }}
