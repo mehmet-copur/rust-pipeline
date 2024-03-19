@@ -42,7 +42,7 @@ runs:
       shell: bash
 
     - name: Convert Clippy JSON to SARIF
-      run: clippy-sarif -o clippy.sarif clippy_output.json
+      run: cat clippy_output.json | clippy-sarif > clippy.sarif
       shell: bash
 
     - name: Upload SARIF results to GitHub
