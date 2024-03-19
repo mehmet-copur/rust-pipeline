@@ -33,36 +33,36 @@ runs:
         fi
       shell: bash
 
-    - name: Run Clippy
+    - name: Install clippy-sarif
+      run: cargo install clippy-sarif
+      shell: bash
+
+    - name: Run Clippy with JSON output
       run: cargo clippy --message-format=json > clippy_output.json || true
       shell: bash
 
-    - name: Check Clippy Warnings Threshold
+    - name: Convert Clippy JSON to SARIF
+      run: clippy-sarif -o clippy.sarif clippy_output.json
+      shell: bash
+
+    - name: Upload SARIF results to GitHub
+      uses: github/codeql-action/upload-sarif@v1
+      with:
+        sarif_file: clippy.sarif
+
+    - name: Check Code Formatting with Rustfmt
+      run: cargo fmt -- --check
+      shell: bash
+      continue-on-error: ${{ inputs.allow-failure == 'true' }}
+
+    - name: Analyze Clippy Warnings
       if: ${{ inputs.allow-failure != 'true' }}
       run: |
+        WARNINGS_COUNT=$(cat clippy_output.json | jq '.diagnostics | length')
         MAX_WARNINGS=${{ inputs.max-clippy-warnings }}
-        WARNINGS_COUNT=$(jq 'select(.type == "warning")' clippy_output.json | jq -s 'length')
         echo "Clippy warnings count: $WARNINGS_COUNT"
-        if [[ "$WARNINGS_COUNT" -gt "$MAX_WARNINGS" ]]; then
-          echo "::error ::Exceeded maximum Clippy warning count of $MAX_WARNINGS"
+        if [ "$WARNINGS_COUNT" -gt "$MAX_WARNINGS" ]; then
+          echo "::error ::Exceeded maximum Clippy warning count of $MAX_WARNINGS, found $WARNINGS_COUNT warnings"
           exit 1
         fi
       shell: bash
-
-    - name: Check Code Formatting with Rustfmt
-      run: cargo fmt -- --check > fmt_output.txt || true
-      shell: bash
-
-    - name: Convert Clippy and rustfmt outputs to SARIF (Hypothetical)
-      run: |
-        clippy-to-sarif clippy_output.json > clippy.sarif
-        fmt-to-sarif fmt_output.txt > fmt.sarif
-      shell: bash
-
-    - name: Upload SARIF to GitHub Code Scanning
-      uses: github/codeql-action/upload-sarif@v1
-      with:
-        sarif_file: |
-          clippy.sarif
-          fmt.sarif
-
