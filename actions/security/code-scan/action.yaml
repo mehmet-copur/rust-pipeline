@@ -1,42 +1,64 @@
-name: 'Rust Code Security Scan'
-description: 'Performs code security analysis using Clippy and Rustfmt on Rust projects.'
+name: "Rust Code Security Scan"
+description: "Performs comprehensive code security analysis for Rust projects, including static analysis, linting, and formatting checks."
 inputs:
   allow-failure:
-    description: 'Set to true to allow the workflow to continue even if this action fails.'
+    description: "Set to true to continue the workflow even if this action fails."
     required: false
-    default: 'false'
-  rust-version:
-    description: 'Rust version to use for linting and formatting.'
+    default: "false"
+  max-clippy-warnings:
+    description: "Maximum number of Clippy warnings to tolerate before failing the action."
     required: false
-    default: 'stable'
+    default: "10"
+  rust-toolchain:
+    description: "Specify the rust toolchain version to use for linting (e.g., stable, nightly, 1.52.0)."
+    required: false
+    default: "stable"
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up Rust
+    - name: Set up Rust Environment
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: ${{ inputs.rust-version }}
-        components: clippy, rustfmt
+        toolchain: ${{ inputs.rust-toolchain }}
         override: true
 
+    - name: Install jq
+      run: sudo apt-get install jq
+      shell: bash
+
     - name: Run Clippy
-      run: cargo clippy --message-format=json > clippy_output.json || true
+      run: |
+        cargo clippy --message-format=json > clippy_output.json || if [ ! -s clippy_output.json ]; then echo '[]' > clippy_output.json; fi
       shell: bash
 
     - name: Annotate clippy warnings
       if: ${{ inputs.allow-failure }} == 'false'
       run: |
-        warnings=$(jq '. | select(.type == "warning")' clippy-output.json | jq -s '. | length')
+        warnings=$(jq '. | select(.type == "warning")' clippy_output.json | jq -s '. | length')
         if [[ "$warnings" -gt 0 ]]; then
           echo "::error::Clippy found warnings"
           exit 1
         fi
       shell: bash
 
-    - name: Check Rust Formatting with Rustfmt
-      run: cargo fmt -- --check
+    - name: Check Code Formatting with Rustfmt
+      run: |
+        cargo fmt -- --check
+      shell: bash
+      continue-on-error: ${{ inputs.allow-failure }}
+
+    - name: Check Clippy Warnings
+      if: ${{ inputs.allow-failure }} != 'true'
+      run: |
+        MAX_WARNINGS=${{ inputs.max-clippy-warnings }}
+        WARNINGS_COUNT=$(cargo clippy --message-format=json | jq -r '. | select(.type == "warning")' | wc -l)
+        echo "Clippy warnings count: $WARNINGS_COUNT"
+        if [ "$WARNINGS_COUNT" -gt "$MAX_WARNINGS" ]; then
+          echo "::error ::Exceeded maximum Clippy warning count of $MAX_WARNINGS"
+          exit 1
+        fi
       shell: bash
