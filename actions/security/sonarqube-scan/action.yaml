@@ -1,0 +1,61 @@
+name: 'Rust SonarQube Scan'
+description: 'Performs SonarQube analysis for Rust projects.'
+inputs:
+  sonar-host:
+    description: 'SonarQube server URL.'
+    required: true
+  sonar-token:
+    description: 'SonarQube authentication token.'
+    required: true
+  project-key:
+    description: 'SonarQube project key.'
+    required: true
+  project-name:
+    description: 'SonarQube project name.'
+    required: true
+  project-version:
+    description: 'Project version.'
+    required: false
+    default: '1.0.0'
+  sources:
+    description: 'Source files for SonarQube to analyze.'
+    required: true
+  tests:
+    description: 'Test files for SonarQube to analyze.'
+    required: false
+  exclusions:
+    description: 'Files and directories to exclude from analysis.'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install SonarQube scanner
+      run: |
+        if ! command -v sonar-scanner &> /dev/null; then
+          export SONAR_SCANNER_VERSION=4.6.2.2472
+          export SONAR_SCANNER_HOME=$HOME/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux
+          curl --create-dirs -sSLo $HOME/.sonar/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip
+          unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
+          echo "$SONAR_SCANNER_HOME/bin" >> $GITHUB_PATH
+        fi
+      shell: bash
+
+    - name: Run SonarQube analysis
+      env:
+        SONAR_HOST_URL: ${{ inputs.sonar-host }}
+        SONAR_TOKEN: ${{ inputs.sonar-token }}
+      run: |
+        sonar-scanner \
+          -Dsonar.projectKey=${{ inputs.project-key }} \
+          -Dsonar.projectName="${{ inputs.project-name }}" \
+          -Dsonar.projectVersion=${{ inputs.project-version }} \
+          -Dsonar.sources=${{ inputs.sources }} \
+          -Dsonar.tests=${{ inputs.tests }} \
+          -Dsonar.exclusions=${{ inputs.exclusions }} \
+          -Dsonar.rust.cargo.ignoreTests=true \
+          -Dsonar.login=$SONAR_TOKEN
+      shell: bash
