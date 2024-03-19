@@ -34,7 +34,7 @@ runs:
       shell: bash
 
     - name: Run Clippy
-      run: cargo clippy --message-format=json -Z unstable-options > clippy_output.json || true
+      run: cargo clippy --message-format=json > clippy_output.json || true
       shell: bash
 
     - name: Annotate clippy warnings
