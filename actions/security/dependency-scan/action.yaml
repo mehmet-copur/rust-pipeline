@@ -1,15 +1,31 @@
-name: 'Dependency Vulnerability Scan'
-description: 'Scans Rust project dependencies for known vulnerabilities using cargo-audit.'
+name: 'Rust Project Security and Dependency Vulnerability Scan'
+description: 'Performs security analysis and scans dependencies for known vulnerabilities in Rust projects using cargo-audit and additional checks.'
 inputs:
   audit-flags:
     description: 'Additional flags for cargo-audit command.'
     required: false
     default: ''
+  fail-on-warnings:
+    description: 'Whether to fail the job if warnings are found by cargo-audit.'
+    required: false
+    default: 'false'
+  rust-toolchain:
+    description: 'The Rust toolchain version to use (e.g., stable, nightly, 1.52.0).'
+    required: false
+    default: 'stable'
 runs:
   using: 'composite'
   steps:
     - name: Checkout code
       uses: actions/checkout@v2
+
+    - name: Set up Rust Environment
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: ${{ inputs.rust-toolchain }}
+        override: true
+        default: true
 
     - name: Install cargo-audit
       run: cargo install cargo-audit
@@ -17,4 +33,21 @@ runs:
 
     - name: Scan dependencies for vulnerabilities
       run: cargo audit ${{ inputs.audit-flags }}
+      shell: bash
+      continue-on-error: ${{ inputs.fail-on-warnings == 'true' }}
+
+    - name: Check for warnings from cargo-audit
+      if: ${{ inputs.fail-on-warnings == 'true' }}
+      run: |
+        WARNINGS_FOUND=$(cargo audit ${{ inputs.audit-flags }} | grep "Warning" || true)
+        if [ -n "$WARNINGS_FOUND" ]; then
+          echo "::error ::Warnings found by cargo-audit."
+          exit 1
+        fi
+      shell: bash
+
+    - name: Run additional security checks (if applicable)
+      run: |
+        # Add any additional security checks here
+        echo "Placeholder for additional security checks."
       shell: bash
