@@ -1,5 +1,5 @@
 name: 'Rust Code Security Scan'
-description: 'Performs a security analysis on Rust projects using cargo clippy and rustfmt for linting and formatting. Outputs results to SARIF format for GitHub integration.'
+description: 'Performs code security analysis using Clippy and Rustfmt on Rust projects.'
 inputs:
   allow-failure:
     description: 'Set to true to allow the workflow to continue even if this action fails.'
@@ -9,41 +9,23 @@ inputs:
     description: 'Rust version to use for linting and formatting.'
     required: false
     default: 'stable'
-  clippy-flags:
-    description: 'Additional flags to pass to cargo clippy.'
-    required: false
-    default: ''
-  rustfmt-flags:
-    description: 'Additional flags to pass to cargo fmt.'
-    required: false
-    default: ''
-outputs:
-  sarif-clippy:
-    description: 'SARIF formatted output from cargo clippy.'
-  sarif-rustfmt:
-    description: 'SARIF formatted output from cargo fmt.'
 runs:
   using: 'composite'
   steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up Rust Environment
+    - name: Set up Rust
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: ${{ inputs.rust-version }}
         profile: minimal
-        override: true
+        toolchain: ${{ inputs.rust-version }}
         components: clippy, rustfmt
+        override: true
 
-    - name: Run cargo clippy and generate SARIF output
-      run: |
-        cargo clippy --message-format=json -- ${INPUTS_CLIPPY_FLAGS} | tee clippy-output.json
-        cargo sarif --input clippy-output.json --output clippy.sarif
-        cat clippy.sarif
+    - name: Run Clippy
+      run: cargo clippy --message-format=json > clippy_output.json || true
       shell: bash
-      env:
-        INPUTS_CLIPPY_FLAGS: ${{ inputs.clippy-flags }}
 
     - name: Annotate clippy warnings
       if: ${{ inputs.allow-failure }} == 'false'
@@ -55,11 +37,6 @@ runs:
         fi
       shell: bash
 
-    - name: Run cargo fmt and generate SARIF output
-      run: |
-        cargo fmt -- --check ${INPUTS_RUSTFMT_FLAGS}
-        cargo sarif --input fmt-output.json --output fmt.sarif
-        cat fmt.sarif
+    - name: Check Rust Formatting with Rustfmt
+      run: cargo fmt -- --check
       shell: bash
-      env:
-        INPUTS_RUSTFMT_FLAGS: ${{ inputs.rustfmt-flags }}
