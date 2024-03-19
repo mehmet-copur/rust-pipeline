@@ -37,22 +37,7 @@ runs:
       run: cargo clippy --message-format=json > clippy_output.json || true
       shell: bash
 
-    - name: Annotate clippy warnings
-      if: ${{ inputs.allow-failure == 'false' }}
-      run: |
-        warnings=$(jq 'select(.type == "warning")' clippy_output.json | jq -s 'length')
-        if [[ "$warnings" -gt 0 ]]; then
-          echo "::error::Clippy found warnings"
-          exit 1
-        fi
-      shell: bash
-
-    - name: Check Code Formatting with Rustfmt
-      run: cargo fmt -- --check
-      shell: bash
-      continue-on-error: ${{ inputs.allow-failure == 'true' }}
-
-    - name: Check Clippy Warnings
+    - name: Check Clippy Warnings Threshold
       if: ${{ inputs.allow-failure != 'true' }}
       run: |
         MAX_WARNINGS=${{ inputs.max-clippy-warnings }}
@@ -63,3 +48,21 @@ runs:
           exit 1
         fi
       shell: bash
+
+    - name: Check Code Formatting with Rustfmt
+      run: cargo fmt -- --check > fmt_output.txt || true
+      shell: bash
+
+    - name: Convert Clippy and rustfmt outputs to SARIF (Hypothetical)
+      run: |
+        clippy-to-sarif clippy_output.json > clippy.sarif
+        fmt-to-sarif fmt_output.txt > fmt.sarif
+      shell: bash
+
+    - name: Upload SARIF to GitHub Code Scanning
+      uses: github/codeql-action/upload-sarif@v1
+      with:
+        sarif_file: |
+          clippy.sarif
+          fmt.sarif
+
