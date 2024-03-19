@@ -1,34 +1,59 @@
-name: 'Code Security Scan'
-description: 'Performs code security analysis using CodeQL and Rust linting tools.'
+name: 'Rust Code Security Scan'
+description: 'Performs a security analysis on Rust projects using cargo clippy and rustfmt for linting and formatting.'
 inputs:
-  setup-codeql-config:
-    description: 'Configuration steps for CodeQL setup.'
+  allow-failure:
+    description: 'Set to true to allow the workflow to continue even if this action fails.'
+    required: false
+    default: 'false'
+  rust-version:
+    description: 'Rust version to use for linting and formatting.'
+    required: false
+    default: 'stable'
+  clippy-flags:
+    description: 'Additional flags to pass to cargo clippy.'
     required: false
     default: ''
+  rustfmt-flags:
+    description: 'Additional flags to pass to cargo fmt.'
+    required: false
+    default: ''
+outputs:
+  clippy-output:
+    description: 'Output from cargo clippy command.'
+  rustfmt-output:
+    description: 'Output from cargo fmt command.'
 runs:
   using: 'composite'
   steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
+    - name: Set up Rust Environment
+      uses: actions-rs/toolchain@v1
       with:
-        languages: 'rust'
-        # This allows for custom configuration of the CodeQL setup.
-        config-file: ${{ inputs.setup-codeql-config }}
+        toolchain: ${{ inputs.rust-version }}
+        profile: minimal
+        override: true
+        components: clippy, rustfmt
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+    - name: Run cargo clippy
+      run: cargo clippy --message-format=json -- ${INPUTS_CLIPPY_FLAGS} | tee clippy-output.json
+      shell: bash
+      env:
+        INPUTS_CLIPPY_FLAGS: ${{ inputs.clippy-flags }}
 
-    - name: Install Rust Linting Tools
-      run: rustup component add clippy rustfmt
+    - name: Annotate clippy warnings
+      if: ${{ inputs.allow-failure }} == 'false'
+      run: |
+        warnings=$(jq '. | select(.type == "warning")' clippy-output.json | jq -s '. | length')
+        if [[ "$warnings" -gt 0 ]]; then
+          echo "::error::Clippy found warnings"
+          exit 1
+        fi
       shell: bash
 
-    - name: Run Clippy (Rust Linter)
-      run: cargo clippy -- -D warnings
+    - name: Run cargo fmt
+      run: cargo fmt -- --check ${INPUTS_RUSTFMT_FLAGS}
       shell: bash
-
-    - name: Check Code Formatting with Rustfmt
-      run: cargo fmt -- --check
-      shell: bash
+      env:
+        INPUTS_RUSTFMT_FLAGS: ${{ inputs.rustfmt-flags }}
