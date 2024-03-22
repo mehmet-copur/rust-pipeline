@@ -26,7 +26,10 @@ inputs:
   exclusions:
     description: 'Files and directories to exclude from analysis.'
     required: false
-
+  allow-failure:
+    description: 'Specifies whether the action should allow failure.'
+    required: false
+    default: 'false'
 runs:
   using: 'composite'
   steps:
