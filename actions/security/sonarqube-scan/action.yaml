@@ -1,45 +1,45 @@
-name: 'SonarCloud Analysis'
-description: 'Performs SonarCloud analysis on projects.'
+name: "SonarCloud Analysis"
+description: "Performs SonarCloud analysis on projects."
 inputs:
   sonar-token:
-    description: 'SonarCloud authentication token.'
+    description: "SonarCloud authentication token."
     required: true
   organization:
-    description: 'SonarCloud organization key.'
+    description: "SonarCloud organization key."
     required: true
   project-key:
-    description: 'SonarCloud project key.'
+    description: "SonarCloud project key."
     required: true
   project-name:
-    description: 'SonarCloud project name.'
+    description: "SonarCloud project name."
     required: true
   project-version:
-    description: 'Project version.'
-    default: '1.0.0'
+    description: "Project version."
+    default: "1.0.0"
     required: false
   sources:
-    description: 'Source files for SonarCloud to analyze.'
-    default: '.'
+    description: "Source files for SonarCloud to analyze."
+    default: "."
     required: false
   tests:
-    description: 'Test files for SonarCloud to analyze.'
-    default: '.'
+    description: "Test files for SonarCloud to analyze."
+    default: "."
     required: false
   exclusions:
-    description: 'Files and directories to exclude from analysis.'
-    default: ''
+    description: "Files and directories to exclude from analysis."
+    default: ""
     required: false
   test-inclusions:
-    description: 'Test files to include in analysis.'
-    default: ''
+    description: "Test files to include in analysis."
+    default: ""
     required: false
   allow-failure:
-    description: 'Specifies whether the action should allow failure.'
-    default: 'false'
+    description: "Specifies whether the action should allow failure."
+    default: "false"
     required: false
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -47,7 +47,6 @@ runs:
     - name: Set up SonarCloud scanner
       uses: sonarsource/sonarcloud-github-action@master
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ inputs.sonar-token }}
       with:
         args: >
