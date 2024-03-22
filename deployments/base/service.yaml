@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.app.name }}-service            # Name of the service, parameterized
+  labels:
+    app: {{ .Values.app.name }}
+spec:
+  type: {{ .Values.service.type }}                # Service type, parameterized (e.g., ClusterIP, NodePort, LoadBalancer)
+  ports:
+    - port: {{ .Values.service.port }}            # The port that the service should serve on
+      targetPort: {{ .Values.app.port }}          # The target port on the pod(s), parameterized
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ .Values.app.name }}                   # Selector to match pods that the service will route to

@@ -1,0 +1,59 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Resources to include in this kustomization
+resources:
+  - deployment.yaml
+  - service.yaml
+  - virtualservice.yaml
+  - destinationrule.yaml
+
+# Common labels to add to all the resources
+commonLabels:
+  app: {{ .Values.app.name }}
+
+# Namespace to deploy the resources into (if omitted, the default namespace is used)
+# namespace: {{ .Values.namespace }}
+
+# To manage the versions of ConfigMaps or Secrets
+configMapGenerator:
+  - name: {{ .Values.app.name }}-config-map
+    files:
+      - configs/config.properties
+      - configs/another-config.properties
+    # Use behavior: 'create' if you want kustomize to create new resources instead of modifying existing ones.
+    behavior: merge
+
+# To manage the versions of Secrets (if you have any)
+secretGenerator:
+  - name: {{ .Values.app.name }}-secret
+    files:
+      - secrets/app-secret.properties
+    type: Opaque
+    # Use behavior: 'create' if you want kustomize to create new resources instead of modifying existing ones.
+    behavior: merge
+
+# Patches to apply to the resources for custom changes
+patchesStrategicMerge:
+  - patch-deployment.yaml
+  - patch-service.yaml
+
+# Add any required patches for different environments
+# patchesJson6902:
+# - target:
+#     group: apps
+#     version: v1
+#     kind: Deployment
+#     name: {{ .Values.app.name }}
+#   path: patch-deployment-env.yaml
+
+# If needed, you can specify a sequence of transformations to apply to all resources.
+# transformers:
+# - transformer1.yaml
+# - transformer2.yaml
+
+# Image tag overrides (if any)
+images:
+  - name: app-image
+    newName: {{ .Values.image.repository }}  # New location of the image, if necessary
+    newTag: {{ .Values.image.tag }}          # New tag of the image, if necessary

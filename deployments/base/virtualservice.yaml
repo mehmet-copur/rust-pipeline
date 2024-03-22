@@ -1,0 +1,24 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Values.app.name }}-virtualservice
+spec:
+  hosts:
+    - "{{ .Values.app.host }}" # Expected host, parameterized
+  gateways:
+    - "{{ .Values.gateway.name }}" # Gateway, parameterized
+  http:
+    - match:
+        - uri:
+            prefix: "/" # You can parameterize this if different routes are needed
+      route:
+        - destination:
+            host: "{{ .Values.app.host }}"
+            port:
+              number: {{ .Values.app.port }} # Application port, parameterized
+          weight: {{ .Values.routing.mainWeight }} # Main route weight, parameterized
+        - destination:
+            host: "{{ .Values.app.canaryHost }}" # Canary host, parameterized
+            port:
+              number: {{ .Values.app.port }} # Assuming canary uses the same port, parameterized
+          weight: {{ .Values.routing.canaryWeight }} # Canary route weight, parameterized
