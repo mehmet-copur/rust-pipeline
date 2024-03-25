@@ -1,0 +1,26 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-virtualservice-dev
+spec:
+  hosts:
+    - "{{ .Values.app.host }}"
+  gateways:
+    - dev-gateway
+  http:
+    - name: "app-route"
+      match:
+        - uri:
+            prefix: "/dev"
+      route:
+        - destination:
+            host: app-service-dev
+            subset: v1
+            port:
+              number: {{ .Values.service.devPort }}
+      # Add more routing rules specific to the development environment
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: "5xx,gateway-error"
+      timeout: 10s

@@ -1,0 +1,41 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base directory to use as the starting point
+resources:
+  - ../../base
+
+# Namespace for the staging deployment
+namespace: staging
+
+# Common labels to add to all the resources
+commonLabels:
+  env: staging
+
+# Staging-specific patches
+patchesStrategicMerge:
+  - patch-deployment-staging.yaml
+  - patch-service-staging.yaml
+  - virtualservice-staging.yaml
+  - destinationrule-staging.yaml
+
+# ConfigMap generation for staging-specific configurations
+configMapGenerator:
+  - name: app-config-staging
+    behavior: merge
+    files:
+      - staging-config.properties
+
+# Secret generation for sensitive data (use secure management practices)
+# secretGenerator:
+#   - name: app-secret-staging
+#     files:
+#       - secrets/staging-secrets.env
+
+# Custom images for staging, which might include latest or candidate tags
+images:
+  - name: app-image
+    newName: staging-registry.example.com/app
+    newTag: "latest-candidate"
+
+# Add more configurations as needed for your staging environment

@@ -1,0 +1,36 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-virtualservice-prod
+spec:
+  hosts:
+    - "{{ .Values.app.productionHost }}" # The host exposed to the outside world
+  gateways:
+    - prod-gateway
+  http:
+    - match:
+        - uri:
+            prefix: "/api" # Production services might have a different routing setup
+      rewrite:
+        uri: "/" # Rewrite can be used if the internal service expects a different path
+      route:
+        - destination:
+            host: app-service.prod.svc.cluster.local # Fully qualified domain name of the service
+            port:
+              number: {{ .Values.service.port }} # Port on which the service is exposed
+      timeout: {{ .Values.networking.timeout }} # Production specific timeouts
+      retries:
+        attempts: {{ .Values.networking.retry.attempts }}
+        perTryTimeout: {{ .Values.networking.retry.perTryTimeout }}
+        retryOn: {{ .Values.networking.retry.conditions }}
+      corsPolicy: # If CORS needs to be configured in production
+        allowOrigins:
+          - "{{ .Values.networking.cors.allowOrigins }}"
+        allowMethods:
+          - "{{ .Values.networking.cors.allowMethods }}"
+        allowHeaders:
+          - "{{ .Values.networking.cors.allowHeaders }}"
+        maxAge: "{{ .Values.networking.cors.maxAge }}"
+        exposeHeaders:
+          - "{{ .Values.networking.cors.exposeHeaders }}"
+        allowCredentials: {{ .Values.networking.cors.allowCredentials }}

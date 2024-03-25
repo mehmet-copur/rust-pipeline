@@ -1,0 +1,15 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-virtualservice-bluegreen
+spec:
+  hosts:
+    - "{{ .Values.app.host }}"
+  gateways:
+    - "{{ .Values.gateway.name }}"
+  http:
+    - route:
+        - destination:
+            host: "{{ .Values.app.host }}"
+            subset: "{{ .Values.activeSubset }}"
+          weight: 100

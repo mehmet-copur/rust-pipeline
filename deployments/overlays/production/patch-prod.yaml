@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deployment
+spec:
+  # Scaling the replica count to meet production load
+  replicas: {{ .Values.prod.replicaCount }}
+
+  template:
+    spec:
+      containers:
+      - name: app-container
+        # Production-specific environment variables
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-prod-database-url
+              key: DATABASE_URL
+        # Update resource requests and limits for production workloads
+        resources:
+          requests:
+            cpu: {{ .Values.prod.resources.requests.cpu }}
+            memory: {{ .Values.prod.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.prod.resources.limits.cpu }}
+            memory: {{ .Values.prod.resources.limits.memory }}

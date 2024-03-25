@@ -1,0 +1,26 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-virtualservice-staging
+spec:
+  hosts:
+    - "{{ .Values.app.stagingHost }}"  # The host exposed to the outside world, parameterized for staging
+  gateways:
+    - staging-gateway  # Assumes a gateway named 'staging-gateway' is configured
+  http:
+    - match:
+        - uri:
+            prefix: "/api"  # Assuming the staging environment tests the API under a specific prefix
+      rewrite:
+        uri: "/api/v1"  # Rewrite rules can help route to specific versions or paths
+      route:
+        - destination:
+            host: app-service.staging.svc.cluster.local  # Target service within the Kubernetes cluster
+            subset: v1  # Directing traffic to a specific version of your app
+            port:
+              number: {{ .Values.service.port }}  # Service port, parameterized
+      timeout: {{ .Values.networking.timeout }}  # Custom timeout settings for staging
+      retries:
+        attempts: {{ .Values.networking.retry.attempts }}  # Custom retry logic for staging
+        perTryTimeout: {{ .Values.networking.retry.perTryTimeout }}
+        retryOn: {{ .Values.networking.retry.conditions }}  # Conditions to trigger a retry

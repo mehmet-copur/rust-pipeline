@@ -1,0 +1,13 @@
+apiVersion: source.toolkit.fluxcd.io/v1beta1
+kind: GitRepository
+metadata:
+  name: {{ .Values.git.name }}
+  namespace: {{ .Values.git.namespace }}
+spec:
+  interval: {{ .Values.git.interval }}
+  url: {{ .Values.git.url }}
+  ref:
+    branch: {{ .Values.git.branch }}
+  secretRef:
+    name: {{ .Values.git.secretRefName }} # Assuming SSH authentication
+  ignore: {{ .Values.git.ignore }} # Optional: .gitignore style pattern to ignore

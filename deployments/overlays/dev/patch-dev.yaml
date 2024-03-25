@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: app-container
+          env:
+            - name: ENVIRONMENT
+              value: development # Explicitly define the environment
+            - name: LOG_LEVEL
+              value: debug # Set log level to debug for development environment
+          resources:
+            requests:
+              cpu: "100m" # Adjust CPU requests for development
+              memory: "256Mi" # Adjust memory requests for development
+            limits:
+              cpu: "500m" # Adjust CPU limits for development
+              memory: "512Mi" # Adjust memory limits for development
+          # You may want to add or change other properties specific to the development environment

@@ -1,0 +1,13 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: app-destinationrule-abtest
+spec:
+  host: "{{ .Values.app.host }}"  # Target service host
+  subsets:
+    - name: v1  # Existing version of the service
+      labels:
+        version: v1
+    - name: v2  # New version of the service being tested
+      labels:
+        version: v2

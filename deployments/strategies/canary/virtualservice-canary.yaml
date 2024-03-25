@@ -1,0 +1,22 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-virtualservice-canary
+spec:
+  hosts:
+    - "{{ .Values.app.host }}"
+  gateways:
+    - "{{ .Values.gateway.name }}"
+  http:
+    - match:
+        - uri:
+            prefix: "/" # You can customize this to target specific paths
+      route:
+        - destination:
+            host: "{{ .Values.app.host }}"
+            subset: stable
+          weight: {{ .Values.canary.weight.stable }}
+        - destination:
+            host: "{{ .Values.app.host }}"
+            subset: canary
+          weight: {{ .Values.canary.weight.canary }}

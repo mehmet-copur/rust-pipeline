@@ -1,0 +1,36 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-virtualservice-abtest
+spec:
+  hosts:
+    - "{{ .Values.app.host }}"
+  gateways:
+    - "{{ .Values.gateway.name }}"
+  http:
+    - match:
+        - headers:
+            user-group:
+              exact: "test-group-a"
+      route:
+        - destination:
+            host: "{{ .Values.app.host }}"
+            subset: v1
+          weight: {{ .Values.abTesting.weight.v1 }}
+        - destination:
+            host: "{{ .Values.app.host }}"
+            subset: v2
+          weight: {{ .Values.abTesting.weight.v2 }}
+    - match:
+        - headers:
+            user-group:
+              exact: "test-group-b"
+      route:
+        - destination:
+            host: "{{ .Values.app.host }}"
+            subset: v3
+          weight: {{ .Values.abTesting.weight.v3 }}
+        - destination:
+            host: "{{ .Values.app.host }}"
+            subset: v4
+          weight: {{ .Values.abTesting.weight.v4 }}

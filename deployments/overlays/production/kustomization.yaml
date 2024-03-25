@@ -1,0 +1,49 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base manifests to use as the starting point
+resources:
+  - ../../base
+
+# Namespace for the production deployment
+namespace: production
+
+# Labels to add to all resources for easy identification
+commonLabels:
+  env: production
+
+# Production-specific patches
+patchesStrategicMerge:
+  - patch-deployment-prod.yaml
+  - patch-service-prod.yaml
+  - virtualservice-prod.yaml
+  - destinationrule-prod.yaml
+
+# ConfigMap generation for production-specific configurations
+configMapGenerator:
+  - name: app-config
+    behavior: merge
+    files:
+      - prod-config.properties
+
+# Secret generation for sensitive data (use a secure management system)
+# secretGenerator:
+#   - name: app-secret
+#     files:
+#       - secret.properties
+
+# Custom images for production, might include more stable or verified tags
+images:
+  - name: app-image
+    newName: prod-registry.example.com/app
+    newTag: "stable"
+
+# Additional configurations that might be necessary for production
+# Example: Setting resource limits and requests for high availability
+# patches:
+# - target:
+#     group: apps
+#     version: v1
+#     kind: Deployment
+#     name: app-deployment
+#   path: resource-limits-patch.yaml

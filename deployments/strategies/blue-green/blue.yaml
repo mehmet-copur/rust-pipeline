@@ -1,0 +1,30 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-virtualservice-blue
+spec:
+  hosts:
+    - "{{ .Values.app.host }}"
+  gateways:
+    - "{{ .Values.gateway.name }}"
+  http:
+    - route:
+        - destination:
+            host: "{{ .Values.app.host }}"
+            subset: blue
+          weight: 100
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: app-destinationrule-blue-green
+spec:
+  host: "{{ .Values.app.host }}"
+  subsets:
+    - name: blue
+      labels:
+        version: blue
+    - name: green
+      labels:
+        version: green

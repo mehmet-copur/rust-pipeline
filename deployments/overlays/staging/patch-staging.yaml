@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deployment
+spec:
+  replicas: 2 # Example change: scale the number of replicas for staging
+  template:
+    spec:
+      containers:
+      - name: app-container
+        # Adjusting environment variables for the staging environment
+        env:
+        - name: ENVIRONMENT
+          value: "staging"
+        - name: DEBUG_MODE
+          value: "true" # Enable debug mode in staging for easier troubleshooting
+        # Example change: Adjust resource requests and limits for staging
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"

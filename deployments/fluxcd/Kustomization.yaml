@@ -1,0 +1,53 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+kind: Kustomization
+metadata:
+  name: {{ .Values.kustomization.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  interval: {{ .Values.kustomization.interval }} # Sync interval
+  # Specify the path to the base directory
+  path: "./deployments/base/"
+  prune: true # Whether to delete resources removed from source
+  sourceRef:
+    kind: GitRepository
+    name: {{ .Values.source.gitRepositoryName }} # Name of the GitRepository resource
+    namespace: {{ .Values.source.namespace }}
+  decryption:
+    provider: {{ .Values.decryption.provider }} # Encryption provider, e.g., sops
+    secretRef:
+      name: {{ .Values.decryption.secretRefName }} # Reference to the decryption key secret
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: {{ .Values.healthChecks.deploymentName }}
+      namespace: {{ .Values.namespace }}
+  # Define the list of kustomize overlays to apply
+  patchesStrategicMerge:
+    - ./overlays/dev/patch-dev.yaml
+    - ./overlays/staging/patch-staging.yaml
+    - ./overlays/production/patch-prod.yaml
+  # Define post-build actions if any (e.g., notifications)
+  postBuild:
+    substitute:
+      IMAGE_TAG: "{{ .Values.image.tag }}"
+  # Targets specify which overlays to apply on top of the base
+  targets:
+    - name: dev
+      kustomize:
+        path: ./overlays/dev/
+    - name: staging
+      kustomize:
+        path: ./overlays/staging/
+    - name: production
+      kustomize:
+        path: ./overlays/production/
+    # Add the strategy overlays as targets
+    - name: ab-testing
+      kustomize:
+        path: ./strategies/ab-testing/
+    - name: blue-green
+      kustomize:
+        path: ./strategies/blue-green/
+    - name: canary
+      kustomize:
+        path: ./strategies/canary/

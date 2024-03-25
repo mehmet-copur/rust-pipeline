@@ -1,0 +1,29 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: app-destinationrule-prod
+spec:
+  host: "{{ .Values.app.host }}"  # Hostname of the service this DestinationRule is responsible for
+  trafficPolicy:
+    loadBalancer:
+      simple: {{ .Values.loadBalancer.prod.type }}  # Production-grade load balancing policy
+    connectionPool:
+      tcp:
+        maxConnections: {{ .Values.connectionPool.prod.tcp.maxConnections }}  # Suitable for production use
+      http:
+        http1MaxPendingRequests: {{ .Values.connectionPool.prod.http.http1MaxPendingRequests }}
+        http2MaxRequests: {{ .Values.connectionPool.prod.http.http2MaxRequests }}
+        maxRequestsPerConnection: {{ .Values.connectionPool.prod.http.maxRequestsPerConnection }}
+    outlierDetection:
+      consecutiveErrors: {{ .Values.outlierDetection.prod.consecutiveErrors }}
+      interval: {{ .Values.outlierDetection.prod.interval }}
+      baseEjectionTime: {{ .Values.outlierDetection.prod.baseEjectionTime }}
+      maxEjectionPercent: {{ .Values.outlierDetection.prod.maxEjectionPercent }}
+  subsets:  # Define subsets for directing traffic to different versions of the application
+    - name: v1
+      labels:
+        version: v1
+    - name: v2
+      labels:
+        version: v2
+    # Additional subsets can be defined as required

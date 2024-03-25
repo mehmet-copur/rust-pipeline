@@ -1,0 +1,28 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: {{ .Values.release.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  interval: {{ .Values.update.interval }} # How often to check for updates
+  chart:
+    spec:
+      chart: {{ .Values.chart.name }} # The name of the Helm chart
+      version: "{{ .Values.chart.version }}" # The version of the chart to deploy
+      sourceRef:
+        kind: HelmRepository
+        name: {{ .Values.chart.repositoryName }} # Reference to the HelmRepository resource
+        namespace: {{ .Values.chart.repositoryNamespace }}
+      interval: {{ .Values.chart.fetchInterval }}
+  values:
+    image:
+      repository: {{ .Values.image.repository }}
+      tag: {{ .Values.image.tag }}
+    replicaCount: {{ .Values.replicaCount }}
+    # Define other values under this section as needed
+  install:
+    remediation:
+      retries: {{ .Values.install.retries }} # How many times to retry installation upon failure
+  upgrade:
+    remediation:
+      retries: {{ .Values.upgrade.retries }} # How many times to retry upgrade upon failure

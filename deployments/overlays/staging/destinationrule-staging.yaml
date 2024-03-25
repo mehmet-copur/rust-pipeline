@@ -1,0 +1,29 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: app-destinationrule-staging
+spec:
+  host: "{{ .Values.app.stagingHost }}"  # The service host this rule applies to
+  trafficPolicy:
+    loadBalancer:
+      simple: {{ .Values.loadBalancer.staging.type }}  # Load balancer policy for staging
+    connectionPool:
+      tcp:
+        maxConnections: {{ .Values.connectionPool.staging.tcp.maxConnections }}  # TCP connection settings
+      http:
+        http1MaxPendingRequests: {{ .Values.connectionPool.staging.http.http1MaxPendingRequests }}  # HTTP1 settings
+        http2MaxRequests: {{ .Values.connectionPool.staging.http.http2MaxRequests }}  # HTTP2 settings
+        maxRequestsPerConnection: {{ .Values.connectionPool.staging.http.maxRequestsPerConnection }}  # Max requests per connection
+    outlierDetection:
+      consecutive5xxErrors: {{ .Values.outlierDetection.staging.consecutive5xxErrors }}  # Outlier detection settings
+      interval: {{ .Values.outlierDetection.staging.interval }}
+      baseEjectionTime: {{ .Values.outlierDetection.staging.baseEjectionTime }}
+      maxEjectionPercent: {{ .Values.outlierDetection.staging.maxEjectionPercent }}
+  subsets:
+    - name: v1
+      labels:
+        version: v1
+    - name: v2
+      labels:
+        version: v2
+    # Define additional subsets if needed
