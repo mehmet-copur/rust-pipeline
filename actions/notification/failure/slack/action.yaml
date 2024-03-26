@@ -1,0 +1,29 @@
+name: Send failure notification
+description: Sends out a message to the default notification channels for failed actions, with enhanced context.
+inputs:
+  slack_token:
+    description: 'Slack Bot Token'
+    required: true
+  message:
+    description: 'Message of the notification'
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Notify log channel
+      if: failure() && github.ref == 'refs/heads/main' # Only notify for failures on the main branch
+      uses: slackapi/slack-github-action@v1.0.3 # Use a specific version for stability
+      with:
+        channel-id: 'kpn_automation_log'
+        slack-message: ":bangbang: Repository ${{ github.repository }} encountered a failure. Action: ${{ github.action }}. Actor: ${{ github.actor }}. [View Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}). Message: ${{ inputs.message }}"
+      env:
+        SLACK_BOT_TOKEN: ${{ inputs.slack_token }}
+
+    - name: Notify failures channel
+      if: failure() && github.ref == 'refs/heads/main' # Consistent with the above condition
+      uses: slackapi/slack-github-action@v1.0.3
+      with:
+        channel-id: 'kpn_automation_failures'
+        slack-message: "Failure detected in ${{ github.repository }}. Check the logs for more details. [View Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}). Message: ${{ inputs.message }}"
+      env:
+        SLACK_BOT_TOKEN: ${{ inputs.slack_token }}

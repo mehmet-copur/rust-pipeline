@@ -29,5 +29,3 @@ spec:
         env:                                                         # Environment variables
         - name: ENVIRONMENT
           value: {{ .Values.environment }}                            # Environment type, parameterized
-        # Add other environment variables, secrets, or config maps as needed
-      # Add additional containers, such as sidecars or init containers if needed

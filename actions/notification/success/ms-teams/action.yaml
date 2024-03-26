@@ -1,0 +1,41 @@
+name: Send success notification to Teams
+description: Sends out a message to a Microsoft Teams channel for successful actions.
+inputs:
+  webhook_url:
+    description: 'Microsoft Teams Webhook URL'
+    required: true
+  message:
+    description: 'Message of the notification'
+    required: true
+  is_release:
+    description: Indicates this message is about a successful release
+    type: boolean
+    default: false
+    required: false
+runs:
+  using: composite
+  steps:
+    - name: Notify Teams channel
+      shell: bash
+      run: |
+        MESSAGE="Repository ${{ github.repository }} successfully completed an action. ${{ inputs.message }}"
+        if [[ ${{ inputs.is_release }} == true ]]; then
+          MESSAGE="🚀 Release successful! ${{ inputs.message }}"
+        fi
+        PAYLOAD=$(cat <<EOF
+        {
+          "@type": "MessageCard",
+          "@context": "http://schema.org/extensions",
+          "themeColor": "0078D7",
+          "summary": "Success Notification",
+          "sections": [{
+            "activityTitle": "Success!",
+            "activitySubtitle": "$MESSAGE",
+            "markdown": true
+          }]
+        }
+EOF
+        )
+        curl -H "Content-Type: application/json" -d "$PAYLOAD" ${{ inputs.webhook_url }}
+      env:
+        WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }} # Make sure to store your webhook URL as a secret in GitHub

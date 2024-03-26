@@ -1,0 +1,33 @@
+name: Send success notification
+description: Sends out a message to the default notification channels for successful actions, with conditional logic for release notifications.
+inputs:
+  slack_token:
+    description: 'Slack Bot Token'
+    required: true
+  message:
+    description: 'Message of the notification'
+    required: true
+  is_release:
+    description: Indicates this message is about a successful release
+    type: boolean
+    default: false
+    required: false
+runs:
+  using: composite
+  steps:
+    - name: Notify log channel
+      uses: slackapi/slack-github-action@v1.0.3 # Specify the version for stability
+      with:
+        channel-id: 'kpn_automation_log'
+        slack-message: ":white_check_mark: Repository ${{ github.repository }} successfully completed. Action: ${{ github.action }}. Actor: ${{ github.actor }}. Message: ${{ inputs.message }} [View Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }} # Use secrets for tokens
+
+    - name: Notify release channel
+      if: inputs.is_release == 'true' # Corrected condition syntax for composite action
+      uses: slackapi/slack-github-action@v1.0.3
+      with:
+        channel-id: 'kpn_automation_releases'
+        slack-message: "🚀 Release successful! ${{ inputs.message }} [View Release](${{ github.server_url }}/${{ github.repository }}/releases)."
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

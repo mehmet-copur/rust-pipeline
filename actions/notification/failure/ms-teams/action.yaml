@@ -1,0 +1,33 @@
+name: Send failure notification to Teams
+description: Sends out a message to a Microsoft Teams channel for failed actions.
+inputs:
+  webhook_url:
+    description: 'Microsoft Teams Webhook URL'
+    required: true
+  message:
+    description: 'Message of the notification'
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Notify Teams channel on failure
+      shell: bash
+      run: |
+        MESSAGE="Failure in repository ${{ github.repository }}: ${{ inputs.message }}"
+        PAYLOAD=$(cat <<EOF
+        {
+          "@type": "MessageCard",
+          "@context": "http://schema.org/extensions",
+          "themeColor": "FF0000", # Red color to indicate failure
+          "summary": "Failure Notification",
+          "sections": [{
+            "activityTitle": "Failure Detected :x:",
+            "activitySubtitle": "$MESSAGE",
+            "markdown": true
+          }]
+        }
+EOF
+        )
+        curl -H "Content-Type: application/json" -d "$PAYLOAD" ${{ inputs.webhook_url }}
+      env:
+        WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }} # Ensure to use the webhook URL stored as a GitHub secret
