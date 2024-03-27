@@ -1,9 +1,9 @@
-name: 'Setup Rust Environment for Unit Testing'
-description: 'Prepares a Rust environment for running unit tests, including toolchain setup, caching, and environment configuration.'
+name: 'Setup Rust Environment'
+description: 'Prepares a comprehensive Rust environment for various workflows, including toolchain setup, caching, and environment configuration. It also installs cargo-outdated for dependency management.'
 
 inputs:
   rust-version:
-    description: 'The version of the Rust toolchain to use.'
+    description: 'The version of the Rust toolchain to use. Defaults to stable.'
     required: false
     default: 'stable'
   cache-key-prefix:
@@ -11,7 +11,7 @@ inputs:
     required: false
     default: 'rust-cache-'
   additional-env-vars:
-    description: 'A JSON string containing additional environment variables to set.'
+    description: 'A JSON string of additional environment variables to set, formatted as key-value pairs.'
     required: false
 
 outputs:
@@ -23,6 +23,7 @@ runs:
   steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      # Ensures your workflow checks out the code before setting up Rust environment
 
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
@@ -31,31 +32,42 @@ runs:
         profile: minimal
         override: true
         components: rustfmt, clippy
+      # Installs the Rust toolchain, including rustfmt and clippy for code formatting and linting
 
-    - name: Set up caching for Cargo registry
+    - name: Install cargo-outdated (if not cached)
+      run: |
+        if ! command -v cargo-outdated &> /dev/null
+        then
+          echo "Installing cargo-outdated..."
+          cargo install cargo-outdated
+        else
+          echo "cargo-outdated is already installed."
+        fi
+      # Checks if cargo-outdated is already installed to avoid unnecessary installations, improving CI efficiency
+
+    - name: Cache Cargo directories
       uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-cargo-registry-
-
-    - name: Set up caching for Cargo target directory
-      uses: actions/cache@v4
-      with:
-        path: target
-        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-cargo-target-
+          ~/.cargo/bin
+        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ inputs.cache-key-prefix }}-${{ runner.os }}-
+      # Caches Cargo directories to speed up builds in subsequent runs
 
     - name: Configure additional environment variables
       shell: bash
       run: |
         if [ -n "${{ inputs.additional-env-vars }}" ]; then
+          echo "Configuring additional environment variables..."
           echo "${{ inputs.additional-env-vars }}" | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' >> $GITHUB_ENV
         fi
+      # Dynamically sets any additional environment variables passed to the action
 
     - name: Output Rust toolchain path
       shell: bash
-      run: |
-        echo "rust-path=$(which rustc)" >> $GITHUB_ENV
+      run: echo "rust-path=$(which rustc)" >> $GITHUB_ENV
+      # Outputs the path of the installed Rust toolchain for use in subsequent steps
+      
