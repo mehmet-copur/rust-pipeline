@@ -1,0 +1,100 @@
+name: Rust Project Release Process
+
+on:
+  workflow_call:
+    inputs:
+      run-tests:
+        description: "Should the workflow run the test suite before publishing?"
+        type: boolean
+        required: false
+        default: true
+      rust-version:
+        description: "Rust version to use."
+        type: string
+        required: false
+        default: "stable"
+      cargo-test-command:
+        description: "Cargo command to run tests with"
+        type: string
+        required: false
+        default: "test --all-features"
+      cargo-publish-command:
+        description: "Cargo command to publish with"
+        type: string
+        required: false
+        default: "publish"
+      artifactory-username:
+        description: 'Artifactory username'
+        type: string
+        required: true
+      artifactory-password:
+        description: 'Artifactory password'
+        required: true
+        type: secret
+      slack-notification-token:
+        description: 'Token for Slack notifications'
+        required: true
+        type: secret
+      debug:
+        description: "Dump environment and full github action event json"
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      github-token:
+        required: true
+
+jobs:
+  debug:
+    if: ${{ inputs.debug }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump Debug Info
+        uses: hmarr/debug-action@v3
+        with:
+          github_token: ${{ secrets.github-token }}
+
+  setup-test-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Setup Rust Environment
+        uses: ./.github/actions/rust/setup@main
+        with:
+          rust-version: ${{ inputs.rust-version }}
+
+      - name: Run Tests
+        if: ${{ inputs.run-tests }}
+        run: cargo ${{ inputs.cargo-test-command }}
+
+      - name: Setup Artifactory for Rust
+        uses: ./.github/actions/rust/artifactory@main
+        with:
+          artifactory-username: ${{ inputs.artifactory-username }}
+          artifactory-password: ${{ secrets.artifactory-password }}
+
+      - name: Publish to Cargo
+        run: cargo ${{ inputs.cargo-publish-command }}
+
+      - name: Generate Rust License Report
+        uses: ./.github/actions/rust/license-check@main
+
+      - name: Notify on Success
+        if: success()
+        uses: ./.github/actions/notification/success/slack@main
+        with:
+          message: "Rust project successfully published."
+          slack_token: ${{ secrets.slack-notification-token }}
+
+  notify-failure:
+    if: failure()
+    runs-on: ubuntu-latest
+    needs: setup-test-publish
+    steps:
+      - name: Notify on Failure
+        uses: ./.github/actions/notification/failure/slack@main
+        with:
+          message: "Rust project publication failed."
+          slack_token: ${{ secrets.slack-notification-token }}

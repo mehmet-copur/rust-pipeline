@@ -1,0 +1,78 @@
+name: Rust Release Process on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  release-process:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true && (contains(github.event.pull_request.labels.*.name, 'release/major') || contains(github.event.pull_request.labels.*.name, 'release/minor') || contains(github.event.pull_request.labels.*.name, 'release/patch'))
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Check Rust Dependency Updates
+        uses: ./.github/actions/rust/dependency-check@main
+        id: dependency-check
+
+      - name: Get Merged PR
+        uses: actions-ecosystem/action-get-merged-pull-request@v1
+        id: get-merged-pr
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release Label
+        uses: actions-ecosystem/action-release-label@v1
+        id: release-label
+        if: ${{ steps.get-merged-pr.outputs.number }}
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          number: ${{ steps.get-merged-pr.outputs.number }}
+
+      - name: Bump Version and Tag
+        uses: actions-ecosystem/action-bump-semver@v1
+        id: bump-semver
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag_prefix: 'v'
+          bump_level: ${{ steps.release-label.outputs.level }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        if: steps.bump-semver.outputs.new_version
+        with:
+          files: './target/release/*'
+          tag_name: ${{ steps.bump-semver.outputs.new_version }}
+
+      - name: Comment on PR with Release Details
+        uses: actions-ecosystem/action-create-comment@v1
+        if: steps.bump-semver.outputs.new_version
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          number: ${{ steps.get-merged-pr.outputs.number }}
+          body: "🚀 A new version has been released: ${{ steps.bump-semver.outputs.new_version }}. Check it out here: ${{ steps.create-github-release.outputs.html_url }}"
+
+      # Success notification
+      - name: Notify on Success
+        uses: ./.github/actions/notification/success@v1
+        with:
+          slack_token: ${{ secrets.SLACK_GITHUBACTIONSCI_TOKEN }}
+          message: "Successfully released version ${{ steps.bump-semver.outputs.new_version }} 🚀"
+
+      # Failure notification
+      - name: Notify on Failure
+        if: failure()
+        uses: ./.github/actions/notification/failure@v1
+        with:
+          slack_token: ${{ secrets.SLACK_GITHUBACTIONSCI_TOKEN }}
+          message: "Release process failed for PR ${{ github.event.pull_request.number }}. Review required."
