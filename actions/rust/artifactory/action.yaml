@@ -1,0 +1,61 @@
+name: Setup Artifactory for Rust
+description: Configures Artifactory for cargo, including credentials and custom registry settings, ensuring secure and efficient dependency management for Rust projects.
+
+inputs:
+  artifactory-username:
+    description: 'Artifactory username for authentication.'
+    required: true
+  artifactory-password:
+    description: 'Artifactory password for authentication.'
+    required: true
+  artifactory-hostname:
+    description: 'Hostname of the Artifactory instance, e.g., mycompany.jfrog.io.'
+    required: true
+  artifactory-registry-name:
+    description: 'Name of the custom Artifactory registry to be used.'
+    required: true
+  cargo-config-path:
+    description: 'Optional: Custom path for the Cargo configuration if not using the default path.'
+    required: false
+    default: '.cargo/config.toml'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Cargo credentials
+      shell: bash
+      run: |
+        CARGO_CREDENTIALS_PATH="${HOME}/.cargo/credentials"
+        mkdir -p $(dirname "$CARGO_CREDENTIALS_PATH")
+        echo "Storing Artifactory credentials for Cargo."
+        cat > "$CARGO_CREDENTIALS_PATH" <<EOM
+        [registries.${{ inputs.artifactory-registry-name }}]
+        index = "https://${{ inputs.artifactory-hostname }}/artifactory/api/cargo/${{ inputs.artifactory-registry-name }}"
+        token = "${{ inputs.artifactory-username }}:${{ inputs.artifactory-password }}"
+        EOM
+
+    - name: Configure Cargo to use the custom registry
+      shell: bash
+      run: |
+        CONFIG_PATH="${{ inputs.cargo-config-path }}"
+        mkdir -p $(dirname "$CONFIG_PATH")
+        echo "Configuring Cargo to use the custom registry."
+        cat > "$CONFIG_PATH" <<EOM
+        [source.crates-io]
+        replace-with = "${{ inputs.artifactory-registry-name }}"
+
+        [source.${{ inputs.artifactory-registry-name }}]
+        registry = "https://${{ inputs.artifactory-hostname }}/artifactory/api/cargo/${{ inputs.artifactory-registry-name }}"
+        EOM
+
+    - name: Verify configuration
+      shell: bash
+      run: |
+        echo "Cargo configuration for Artifactory is complete."
+        echo "Configuration path: ${{ inputs.cargo-config-path }}"
+        if grep -q "${{ inputs.artifactory-registry-name }}" "${{ inputs.cargo-config-path }}"; then
+          echo "Custom registry '${{ inputs.artifactory-registry-name }}' is successfully configured."
+        else
+          echo "::error ::Failed to verify the custom registry configuration."
+          exit 1
+        fi

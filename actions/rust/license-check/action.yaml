@@ -1,0 +1,62 @@
+name: Generate Rust License Report
+description: |
+  Generates a license report for Rust project dependencies and commits it if there are changes.
+  Relies on a pre-defined "Setup Rust Environment" action for environment preparation.
+
+inputs:
+  license-report-filename:
+    description: 'Filename for the generated license report.'
+    required: false
+    default: 'LICENSE_REPORT.md'
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Setup Rust environment
+      uses: ./.github/actions/setup-rust-environment
+      with:
+        rust-version: 'stable'
+        cache-key-prefix: 'rust-cache-'
+
+    - name: Install cargo-license
+      run: |
+        cargo install cargo-license --version '^0.4.2' || true
+      # Specifying a version ensures consistency; '|| true' ensures the step doesn't fail if the tool is already installed
+
+    - name: Generate license report
+      run: |
+        cargo license -d > ${{ inputs.license-report-filename }}
+        echo "License report generated."
+
+    - name: Check for changes
+      id: check_changes
+      run: |
+        if git diff --exit-code ${{ inputs.license-report-filename }}; then
+          echo "No changes in the license report."
+          echo "::set-output name=license_report_changed::false"
+        else
+          echo "::set-output name=license_report_changed::true"
+        fi
+
+    - name: Commit and push if changed
+      if: steps.check_changes.outputs.license_report_changed == 'true'
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add ${{ inputs.license-report-filename }}
+        git commit -m "Update Rust license report"
+        git push
+      # Error handling in case push fails could be included here
+
+    - name: Report outcome
+      run: |
+        if [ "${{ steps.check_changes.outputs.license_report_changed }}" == "true" ]; then
+          echo "License report updated and pushed."
+        else
+          echo "License report is up-to-date, no changes made."
+        fi
+      # This step adds a clear, final log message indicating the action's result
+
