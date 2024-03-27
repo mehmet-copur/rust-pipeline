@@ -1,0 +1,47 @@
+name: Rust Cargo Tests
+on:
+  workflow_call:
+    inputs:
+      ARTIFACTORY_USERNAME:
+        type: string
+        required: true
+      artifactory-hostname:
+        description: 'Artifactory hostname'
+        default: 'mycompany.jfrog.io'
+        required: false
+        type: string
+      artifactory-registry-name:
+        description: 'Custom Artifactory registry name for Cargo.'
+        required: true
+        type: string
+    secrets:
+      ARTIFACTORY_PASSWORD:
+        required: true
+jobs:
+  rust_check:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Rust Environment
+        uses: mehmet-copur/rust-pipeline/actions/rust/setup@main
+        with:
+          rust-version: stable
+          additional-env-vars: |
+            {
+              "ARTIFACTORY_USERNAME": "${{ inputs.ARTIFACTORY_USERNAME }}",
+              "ARTIFACTORY_PASSWORD": "${{ secrets.ARTIFACTORY_PASSWORD }}",
+              "ARTIFACTORY_HOSTNAME": "${{ inputs.artifactory-hostname }}",
+              "ARTIFACTORY_REGISTRY_NAME": "${{ inputs.artifactory-registry-name }}"
+            }
+      - name: Configure Artifactory for Cargo
+        uses: mehmet-copur/rust-pipeline/actions/rust/artifactory@main
+        with:
+          artifactory-username: ${{ inputs.ARTIFACTORY_USERNAME }}
+          artifactory-password: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          artifactory-hostname: ${{ inputs.artifactory-hostname }}
+          artifactory-registry-name: ${{ inputs.artifactory-registry-name }}
+      - name: Run Unit Tests
+        uses: mehmet-copur/rust-pipeline/actions/rust/test/unit@main
+        with:
+          verbose: true

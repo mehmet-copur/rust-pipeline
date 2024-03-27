@@ -1,0 +1,39 @@
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '42 0-6,18-23 * * 1-5'
+    - cron: '42 0,12 * * 0,6'
+
+name: Rust Dependency Updates Automation
+
+jobs:
+  setup_rust_environment:
+    name: Setup Rust Environment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+  check_dependencies:
+    name: Check Rust Dependencies
+    needs: setup_rust_environment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Check for outdated dependencies and optionally create an issue
+        uses: ./.github/actions/rust/dependency-check@main
+        with:
+          create-issue: true
+          issue-title: "Outdated Rust dependencies detected"
+          issue-body: |
+            ## :warning: Outdated Dependencies Found
+            Please update the following dependencies:
+            ```
+            ${{ steps.outdated-dependencies-check.outputs.stderr }}
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

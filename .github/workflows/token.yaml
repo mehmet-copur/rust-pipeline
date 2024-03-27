@@ -1,0 +1,24 @@
+# This workflow allows you to expose a secret's value encoded in base64 format.
+# It can be triggered manually from the GitHub Actions tab or from another repository.
+# Before running it directly from the GitHub Actions tab,
+# ensure to replace `${{ secrets.my_secret }}` with the specific secret you want to expose.
+# Use `base64 -d -` to decode the secret.
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      my_secret:
+        description: the secret you would like to expose
+        required: true
+
+name: Dump Secret
+
+jobs:
+  dump_secret:
+    runs-on: ubuntu-22.04
+    steps:
+      - run: 'echo "BASE64: START-${TOKEN}-END" | base64'
+        shell: bash
+        env:
+          TOKEN: ${{ secrets.my_secret }}

@@ -1,0 +1,121 @@
+name: Automerge Dependency Updates for Rust
+
+on:
+  workflow_call:
+    inputs:
+      ARTIFACTORY_USERNAME:
+        description: "Artifactory username for cargo."
+        type: string
+        required: true
+      ARTIFACTORY_REGISTRY_NAME:
+        description: "Custom Artifactory registry name for Cargo."
+        type: string
+        required: true
+      RUST_VERSION:
+        description: "Rust version to use."
+        type: string
+        required: false
+        default: stable
+      CARGO_COMMAND:
+        description: "Cargo command to run tests with."
+        type: string
+        required: false
+        default: test
+      UPDATE_LICENSE_REPORT:
+        description: "Whether to update the LICENSE_REPORT.md file."
+        type: boolean
+        required: false
+        default: true
+      DEBUG:
+        description: "Dump environment and full github action event json."
+        type: boolean
+        required: false
+        default: false
+      TIMEOUT_MINUTES:
+        description: "The maximum number of minutes to let a job run."
+        type: number
+        required: false
+        default: 30
+    secrets:
+      ARTIFACTORY_PASSWORD:
+        required: true
+      SLACK_GITHUBACTIONSCI_TOKEN:
+        required: true
+
+jobs:
+  setup_rust_environment:
+    name: Setup Rust Environment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Rust
+        uses: mehmet-copur/rust-pipeline/actions/rust/setup@main
+        with:
+          rust-version: ${{ inputs.RUST_VERSION }}
+          artifactory-username: ${{ inputs.ARTIFACTORY_USERNAME }}
+          artifactory-password: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          artifactory-registry-name: ${{ inputs.ARTIFACTORY_REGISTRY_NAME }}
+
+  check_dependencies:
+    name: Check Rust Dependencies
+    needs: setup_rust_environment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Check for outdated dependencies
+        uses: mehmet-copur/rust-pipeline/actions/rust/dependency-check@main
+
+  run_tests:
+    name: Run Cargo Tests
+    needs: check_dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Tests
+        uses: mehmet-copur/rust-pipeline/actions/rust/test/unit@main
+        with:
+          command: ${{ inputs.CARGO_COMMAND }}
+
+  generate_license_report:
+    name: Generate License Report
+    if: ${{ inputs.UPDATE_LICENSE_REPORT }}
+    needs: run_tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Generate License Report
+        uses: mehmet-copur/rust-pipeline/actions/rust/license-check@main
+
+  automerge:
+    name: Automerge Dependency Update
+    needs: generate_license_report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Automerge
+        uses: pascalgn/automerge-action@v0.14.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MERGE_LABELS: "automerge,!wip"
+          MERGE_METHOD: squash
+          MERGE_COMMIT_MESSAGE: "chore: merge dependency updates"
+          MERGE_FORKS: false
+          MERGE_RETRIES: 3
+          MERGE_RETRY_SLEEP: 10000
+
+  notify:
+    name: Notify
+    needs: automerge
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify on Success
+        if: ${{ success() }}
+        uses: mehmet-copur/rust-pipeline/actions/notification/success/slack@main
+        with:
+          slack_token: ${{ secrets.SLACK_GITHUBACTIONSCI_TOKEN }}
+          message: "Dependency updates merged successfully."
+      - name: Notify on Failure
+        if: ${{ failure() }}
+        uses: mehmet-copur/rust-pipeline/actions/notification/failure/slack@main
+        with:
+          slack_token: ${{ secrets.SLACK_GITHUBACTIONSCI_TOKEN }}
+          message: "Failed to merge dependency updates."
