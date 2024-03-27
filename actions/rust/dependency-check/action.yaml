@@ -1,0 +1,48 @@
+name: Check Rust Dependency Updates
+description: Uses cargo-outdated to check for outdated Rust dependencies, failing the job if updates are available to ensure attention to dependency management. Provides options for automated issue creation.
+
+inputs:
+  create-issue:
+    description: "Flag to create a GitHub issue if outdated dependencies are found. Defaults to 'false'."
+    required: false
+    default: "false"
+  issue-title:
+    description: "Title for the GitHub issue to be created if outdated dependencies are found. Requires 'create-issue' to be 'true'."
+    required: false
+    default: "Outdated Rust dependencies detected"
+  issue-body:
+    description: "Body text for the GitHub issue. Markdown is supported. Requires 'create-issue' to be 'true'."
+    required: false
+    default: "## :warning: Outdated Dependencies Found\nPlease update the following dependencies..."
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check for Rust dependency updates
+      shell: bash
+      run: |
+        echo "::group::Cargo Outdated Check"
+        OUTDATED=$(cargo outdated)
+        if [[ $? -eq 1 ]]; then
+          echo "$OUTDATED"
+          echo "::set-output name=outdated::true"
+          echo "## :loudspeaker: Dependency updates found" >> $GITHUB_STEP_SUMMARY
+          echo "::error ::Outdated dependencies detected."
+          if [[ "${{ inputs.create-issue }}" == "true" ]]; then
+            echo "Creating an issue for outdated dependencies..."
+            echo "${{ inputs.issue-body }}" > ISSUE_BODY.md
+            gh issue create --title "${{ inputs.issue-title }}" --body-file ISSUE_BODY.md
+          fi
+          exit 1
+        else
+          echo "## :tada: All dependencies up to date" >> $GITHUB_STEP_SUMMARY
+          echo "::set-output name=outdated::false"
+        fi
+        echo "::endgroup::"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Requires the GitHub CLI (gh) to be installed in the setup step if issue creation is enabled
+
+outputs:
+  outdated:
+    description: "Boolean output that indicates whether outdated dependencies were found."
