@@ -1,20 +1,20 @@
-name: 'Rust Code Security Scan'
-description: 'Performs comprehensive code security analysis for Rust projects, including static analysis, linting, and formatting checks.'
+name: "Rust Code Security Scan"
+description: "Performs comprehensive code security analysis for Rust projects, including static analysis, linting, and formatting checks."
 inputs:
   allow-failure:
     description: 'Set to "true" to continue the workflow even if this action fails.'
     required: false
-    default: 'false'
+    default: "false"
   max-clippy-warnings:
-    description: 'Maximum number of Clippy warnings to tolerate before failing the action.'
+    description: "Maximum number of Clippy warnings to tolerate before failing the action."
     required: false
-    default: '10'
+    default: "10"
   rust-toolchain:
-    description: 'Specify the Rust toolchain version to use for linting (e.g., stable, nightly, 1.52.0).'
+    description: "Specify the Rust toolchain version to use for linting (e.g., stable, nightly, 1.52.0)."
     required: false
-    default: 'stable'
+    default: "stable"
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -46,7 +46,7 @@ runs:
       shell: bash
 
     - name: Upload SARIF results to GitHub
-      uses: github/codeql-action/upload-sarif@v1
+      uses: github/codeql-action/upload-sarif@v2
       with:
         sarif_file: clippy.sarif
 
