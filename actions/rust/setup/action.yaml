@@ -35,6 +35,7 @@ runs:
       # Installs the Rust toolchain, including rustfmt and clippy for code formatting and linting
 
     - name: Install cargo-outdated (if not cached)
+      shell: bash    
       run: |
         if ! command -v cargo-outdated &> /dev/null
         then
