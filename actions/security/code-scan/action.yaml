@@ -51,9 +51,25 @@ runs:
         sarif_file: clippy.sarif
 
     - name: Check Code Formatting with Rustfmt
-      run: cargo fmt -- --check
+      run: |
+        echo "Checking code formatting with Rustfmt..."
+        # Run cargo fmt and capture output
+        OUTPUT=$(cargo fmt -- --check 2>&1)
+        STATUS=$?
+        if [ $STATUS -ne 0 ]; then
+          echo "Formatting issues detected:"
+          echo "$OUTPUT"
+          echo "Please run 'cargo fmt' locally to fix them."
+          echo "To automatically apply fixes, you can run the following command in your local environment:"
+          echo "cargo fmt"
+          exit 1
+        else
+          echo "No formatting issues found."
+        fi
       shell: bash
       continue-on-error: ${{ inputs.allow-failure == 'true' }}
+
+
 
     - name: Analyze Clippy Warnings
       if: ${{ inputs.allow-failure != 'true' }}
